@@ -1,10 +1,23 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
+
+// Use Google's public DNS servers
+dns.setServers([
+  "8.8.8.8",
+  "1.1.1.1",
+]);
 
 const connectDB = async () => {
   try {
-    const connection = await mongoose.connect(process.env.MONGO_URI);
+    console.log("Connecting to MongoDB...");
 
-    console.log(`MongoDB Connected: ${connection.connection.host}`);
+    const connection = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+    });
+
+    console.log(
+      "MongoDB Connected:successfully"
+    );
   } catch (error) {
     console.error("MongoDB Connection Error:", error.message);
     process.exit(1);
