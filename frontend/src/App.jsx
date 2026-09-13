@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import Income from "./pages/Income";
+import Dashboard from "./pages/Dashboard";
 import { AuthProvider } from "./context/AuthContext";
 import Expenses from "./pages/Expenses";
 import Home from "./pages/Home";
@@ -12,15 +13,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Budget from "./pages/Budget";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Analytics from "./pages/Analytics";
 
-function Dashboard() {
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>You are logged in.</p>
-    </div>
-  );
-}
 
 function App() {
   return (
@@ -71,6 +65,14 @@ function App() {
   element={
     <ProtectedRoute>
       <Budget />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/analytics"
+  element={
+    <ProtectedRoute>
+      <Analytics />
     </ProtectedRoute>
   }
 />

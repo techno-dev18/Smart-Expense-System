@@ -5,152 +5,356 @@
 #include <sstream>
 #include <string>
 
+using namespace std;
+
 int main() {
 
-    std::vector<Transaction> transactions;
+    vector<Transaction> transactions;
+    vector<Budget> budgets;
 
-    std::string line;
+    string line;
 
-    /*
-        Input format:
+    // ==========================================
+    // READ INPUT
+    // ==========================================
 
-        type|category|amount|date
-
-        Example:
-
-        income|Salary|50000|2026-09-01
-        expense|Food|5000|2026-09-02
-    */
-
-    while (std::getline(std::cin, line)) {
+    while (getline(cin, line)) {
 
         if (line.empty()) {
             continue;
         }
 
-        std::stringstream ss(line);
+        stringstream ss(line);
 
-        Transaction transaction;
+        string type;
 
-        std::string amount;
+        getline(ss, type, '|');
 
-        std::getline(
-            ss,
-            transaction.type,
-            '|'
-        );
 
-        std::getline(
-            ss,
-            transaction.category,
-            '|'
-        );
+        // ==========================================
+        // TRANSACTION
+        // ==========================================
 
-        std::getline(
-            ss,
-            amount,
-            '|'
-        );
+        if (type == "income" || type == "expense") {
 
-        std::getline(
-            ss,
-            transaction.date,
-            '|'
-        );
+            Transaction transaction;
 
-        try {
+            transaction.type = type;
 
-            transaction.amount =
-                std::stod(amount);
+            string amount;
 
-        } catch (...) {
+            getline(
+                ss,
+                transaction.category,
+                '|'
+            );
 
-            continue;
+            getline(
+                ss,
+                amount,
+                '|'
+            );
+
+            getline(
+                ss,
+                transaction.date,
+                '|'
+            );
+
+            try {
+
+                transaction.amount = stod(amount);
+
+            }
+            catch (...) {
+
+                continue;
+            }
+
+            transactions.push_back(transaction);
         }
 
-        transactions.push_back(
-            transaction
-        );
+
+        // ==========================================
+        // BUDGET
+        // ==========================================
+
+        else if (type == "budget") {
+
+            Budget budget;
+
+            string amount;
+
+            getline(
+                ss,
+                budget.category,
+                '|'
+            );
+
+            getline(
+                ss,
+                amount,
+                '|'
+            );
+
+            getline(
+                ss,
+                budget.month,
+                '|'
+            );
+
+            try {
+
+                budget.amount = stod(amount);
+
+            }
+            catch (...) {
+
+                continue;
+            }
+
+            budgets.push_back(budget);
+        }
     }
 
 
-    Analytics analytics(transactions);
+    // ==========================================
+    // CREATE ANALYTICS ENGINE
+    // ==========================================
+
+    Analytics analytics(
+        transactions,
+        budgets
+    );
 
 
-    double totalIncome =
-        analytics.getTotalIncome();
+    // ==========================================
+    // BASIC ANALYTICS
+    // ==========================================
 
-    double totalExpenses =
-        analytics.getTotalExpenses();
-
-    double balance =
-        analytics.getBalance();
-
-    double savingsRate =
-        analytics.getSavingsRate();
-
-    double averageExpense =
-        analytics.getAverageExpense();
-
-    std::string topCategory =
-        analytics.getTopSpendingCategory();
-
-
-    /*
-        Output is deliberately structured
-        so Node.js can easily parse it.
-    */
-
-    std::cout
+    cout
         << "TOTAL_INCOME="
-        << totalIncome
-        << std::endl;
+        << analytics.getTotalIncome()
+        << endl;
 
-    std::cout
+    cout
         << "TOTAL_EXPENSES="
-        << totalExpenses
-        << std::endl;
+        << analytics.getTotalExpenses()
+        << endl;
 
-    std::cout
+    cout
         << "BALANCE="
-        << balance
-        << std::endl;
+        << analytics.getBalance()
+        << endl;
 
-    std::cout
+    cout
         << "SAVINGS_RATE="
-        << savingsRate
-        << std::endl;
+        << analytics.getSavingsRate()
+        << endl;
 
-    std::cout
+    cout
         << "AVERAGE_EXPENSE="
-        << averageExpense
-        << std::endl;
+        << analytics.getAverageExpense()
+        << endl;
 
-    std::cout
+
+    // ==========================================
+    // TOP SPENDING CATEGORY
+    // ==========================================
+
+    cout
         << "TOP_CATEGORY="
-        << topCategory
-        << std::endl;
+        << analytics.getTopSpendingCategory()
+        << endl;
 
 
-    std::cout
+    // ==========================================
+    // CATEGORY SPENDING
+    // ==========================================
+
+    cout
         << "CATEGORY_SPENDING="
-        << std::endl;
-
+        << endl;
 
     auto categorySpending =
         analytics.getCategorySpending();
 
+    for (const auto& item : categorySpending) {
 
-    for (const auto& item :
-         categorySpending) {
-
-        std::cout
+        cout
             << item.first
             << "="
             << item.second
-            << std::endl;
+            << endl;
     }
 
+
+    // ==========================================
+    // MONTHLY EXPENSES
+    // ==========================================
+
+    cout
+        << "MONTHLY_EXPENSES="
+        << endl;
+
+    auto monthlyExpenses =
+        analytics.getMonthlyExpenses();
+
+    for (const auto& item : monthlyExpenses) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // MONTHLY INCOME
+    // ==========================================
+
+    cout
+        << "MONTHLY_INCOME="
+        << endl;
+
+    auto monthlyIncome =
+        analytics.getMonthlyIncome();
+
+    for (const auto& item : monthlyIncome) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // MONTHLY BALANCE
+    // ==========================================
+
+    cout
+        << "MONTHLY_BALANCE="
+        << endl;
+
+    auto monthlyBalance =
+        analytics.getMonthlyBalance();
+
+    for (const auto& item : monthlyBalance) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET ACTUAL SPENDING
+    // ==========================================
+
+    cout
+        << "BUDGET_ACTUAL="
+        << endl;
+
+    auto budgetActual =
+        analytics.getBudgetActualSpending();
+
+    for (const auto& item : budgetActual) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET REMAINING
+    // ==========================================
+
+    cout
+        << "BUDGET_REMAINING="
+        << endl;
+
+    auto budgetRemaining =
+        analytics.getBudgetRemaining();
+
+    for (const auto& item : budgetRemaining) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET USAGE PERCENTAGE
+    // ==========================================
+
+    cout
+        << "BUDGET_USAGE="
+        << endl;
+
+    auto budgetUsage =
+        analytics.getBudgetUsagePercentage();
+
+    for (const auto& item : budgetUsage) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET OVERSPENDING
+    // ==========================================
+
+    cout
+        << "BUDGET_OVERSPENDING="
+        << endl;
+
+    auto budgetOverspending =
+        analytics.getBudgetOverspending();
+
+    for (const auto& item : budgetOverspending) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+// ==========================================
+// SMART BUDGET INSIGHTS
+// ==========================================
+
+cout
+    << "BUDGET_INSIGHTS="
+    << endl;
+
+auto budgetInsights =
+    analytics.getBudgetInsights();
+
+for (const auto& insight : budgetInsights) {
+
+    cout
+        << insight
+        << endl;
+}
+
+    // ==========================================
+    // PROGRAM COMPLETE
+    // ==========================================
 
     return 0;
 }

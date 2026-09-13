@@ -8,6 +8,7 @@ dotenv.config();
 const incomeRoutes = require("./routes/incomeRoutes");
 const app = express();
 const budgetRoutes = require("./routes/budgetRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 // Connect MongoDB
 connectDB();
 
@@ -20,6 +21,10 @@ const authRoutes = require("./routes/authRoutes");
 app.use("/api/income", incomeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/budgets", budgetRoutes);
+app.use(
+  "/api/analytics",
+  analyticsRoutes
+);
 // Test route
 app.get("/", (req, res) => {
   res.json({
