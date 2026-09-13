@@ -7,35 +7,52 @@
 
 using namespace std;
 
+
+// ==========================================
+// MAIN
+// ==========================================
+
 int main() {
 
     vector<Transaction> transactions;
+
     vector<Budget> budgets;
 
     string line;
 
+
     // ==========================================
-    // READ INPUT
+    // READ INPUT FROM NODE.JS
     // ==========================================
 
     while (getline(cin, line)) {
 
+        // Ignore empty lines
         if (line.empty()) {
             continue;
         }
+
 
         stringstream ss(line);
 
         string type;
 
+
+        // --------------------------------------
+        // Read record type
+        // --------------------------------------
+
         getline(ss, type, '|');
 
 
-        // ==========================================
-        // TRANSACTION
-        // ==========================================
+        // ======================================
+        // INCOME / EXPENSE
+        // ======================================
 
-        if (type == "income" || type == "expense") {
+        if (
+            type == "income" ||
+            type == "expense"
+        ) {
 
             Transaction transaction;
 
@@ -43,27 +60,60 @@ int main() {
 
             string amount;
 
-            getline(
-                ss,
-                transaction.category,
-                '|'
-            );
 
-            getline(
-                ss,
-                amount,
-                '|'
-            );
+            // ----------------------------------
+            // Category
+            // ----------------------------------
 
-            getline(
-                ss,
-                transaction.date,
-                '|'
-            );
+            if (
+                !getline(
+                    ss,
+                    transaction.category,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Amount
+            // ----------------------------------
+
+            if (
+                !getline(
+                    ss,
+                    amount,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Date
+            // ----------------------------------
+
+            if (
+                !getline(
+                    ss,
+                    transaction.date,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Convert amount
+            // ----------------------------------
 
             try {
 
-                transaction.amount = stod(amount);
+                transaction.amount =
+                    stod(amount);
 
             }
             catch (...) {
@@ -71,13 +121,20 @@ int main() {
                 continue;
             }
 
-            transactions.push_back(transaction);
+
+            // ----------------------------------
+            // Store transaction
+            // ----------------------------------
+
+            transactions.push_back(
+                transaction
+            );
         }
 
 
-        // ==========================================
+        // ======================================
         // BUDGET
-        // ==========================================
+        // ======================================
 
         else if (type == "budget") {
 
@@ -85,27 +142,60 @@ int main() {
 
             string amount;
 
-            getline(
-                ss,
-                budget.category,
-                '|'
-            );
 
-            getline(
-                ss,
-                amount,
-                '|'
-            );
+            // ----------------------------------
+            // Category
+            // ----------------------------------
 
-            getline(
-                ss,
-                budget.month,
-                '|'
-            );
+            if (
+                !getline(
+                    ss,
+                    budget.category,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Amount
+            // ----------------------------------
+
+            if (
+                !getline(
+                    ss,
+                    amount,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Month
+            // ----------------------------------
+
+            if (
+                !getline(
+                    ss,
+                    budget.month,
+                    '|'
+                )
+            ) {
+                continue;
+            }
+
+
+            // ----------------------------------
+            // Convert amount
+            // ----------------------------------
 
             try {
 
-                budget.amount = stod(amount);
+                budget.amount =
+                    stod(amount);
 
             }
             catch (...) {
@@ -113,13 +203,20 @@ int main() {
                 continue;
             }
 
-            budgets.push_back(budget);
+
+            // ----------------------------------
+            // Store budget
+            // ----------------------------------
+
+            budgets.push_back(
+                budget
+            );
         }
     }
 
 
     // ==========================================
-    // CREATE ANALYTICS ENGINE
+    // CREATE ANALYTICS OBJECT
     // ==========================================
 
     Analytics analytics(
@@ -137,30 +234,30 @@ int main() {
         << analytics.getTotalIncome()
         << endl;
 
+
     cout
         << "TOTAL_EXPENSES="
         << analytics.getTotalExpenses()
         << endl;
+
 
     cout
         << "BALANCE="
         << analytics.getBalance()
         << endl;
 
+
     cout
         << "SAVINGS_RATE="
         << analytics.getSavingsRate()
         << endl;
+
 
     cout
         << "AVERAGE_EXPENSE="
         << analytics.getAverageExpense()
         << endl;
 
-
-    // ==========================================
-    // TOP SPENDING CATEGORY
-    // ==========================================
 
     cout
         << "TOP_CATEGORY="
@@ -176,10 +273,15 @@ int main() {
         << "CATEGORY_SPENDING="
         << endl;
 
+
     auto categorySpending =
         analytics.getCategorySpending();
 
-    for (const auto& item : categorySpending) {
+
+    for (
+        const auto& item :
+        categorySpending
+    ) {
 
         cout
             << item.first
@@ -197,10 +299,15 @@ int main() {
         << "MONTHLY_EXPENSES="
         << endl;
 
+
     auto monthlyExpenses =
         analytics.getMonthlyExpenses();
 
-    for (const auto& item : monthlyExpenses) {
+
+    for (
+        const auto& item :
+        monthlyExpenses
+    ) {
 
         cout
             << item.first
@@ -218,10 +325,15 @@ int main() {
         << "MONTHLY_INCOME="
         << endl;
 
+
     auto monthlyIncome =
         analytics.getMonthlyIncome();
 
-    for (const auto& item : monthlyIncome) {
+
+    for (
+        const auto& item :
+        monthlyIncome
+    ) {
 
         cout
             << item.first
@@ -239,10 +351,15 @@ int main() {
         << "MONTHLY_BALANCE="
         << endl;
 
+
     auto monthlyBalance =
         analytics.getMonthlyBalance();
 
-    for (const auto& item : monthlyBalance) {
+
+    for (
+        const auto& item :
+        monthlyBalance
+    ) {
 
         cout
             << item.first
@@ -260,10 +377,15 @@ int main() {
         << "BUDGET_ACTUAL="
         << endl;
 
+
     auto budgetActual =
         analytics.getBudgetActualSpending();
 
-    for (const auto& item : budgetActual) {
+
+    for (
+        const auto& item :
+        budgetActual
+    ) {
 
         cout
             << item.first
@@ -281,10 +403,15 @@ int main() {
         << "BUDGET_REMAINING="
         << endl;
 
+
     auto budgetRemaining =
         analytics.getBudgetRemaining();
 
-    for (const auto& item : budgetRemaining) {
+
+    for (
+        const auto& item :
+        budgetRemaining
+    ) {
 
         cout
             << item.first
@@ -295,17 +422,22 @@ int main() {
 
 
     // ==========================================
-    // BUDGET USAGE PERCENTAGE
+    // BUDGET USAGE %
     // ==========================================
 
     cout
         << "BUDGET_USAGE="
         << endl;
 
+
     auto budgetUsage =
         analytics.getBudgetUsagePercentage();
 
-    for (const auto& item : budgetUsage) {
+
+    for (
+        const auto& item :
+        budgetUsage
+    ) {
 
         cout
             << item.first
@@ -323,10 +455,15 @@ int main() {
         << "BUDGET_OVERSPENDING="
         << endl;
 
+
     auto budgetOverspending =
         analytics.getBudgetOverspending();
 
-    for (const auto& item : budgetOverspending) {
+
+    for (
+        const auto& item :
+        budgetOverspending
+    ) {
 
         cout
             << item.first
@@ -334,26 +471,147 @@ int main() {
             << item.second
             << endl;
     }
-// ==========================================
-// SMART BUDGET INSIGHTS
-// ==========================================
 
-cout
-    << "BUDGET_INSIGHTS="
-    << endl;
-
-auto budgetInsights =
-    analytics.getBudgetInsights();
-
-for (const auto& insight : budgetInsights) {
-
-    cout
-        << insight
-        << endl;
-}
 
     // ==========================================
-    // PROGRAM COMPLETE
+    // BUDGET SPENDING PACE
+    // ==========================================
+
+    cout
+        << "BUDGET_PACE="
+        << endl;
+
+
+    auto budgetPace =
+        analytics.getBudgetSpendingPace();
+
+
+    for (
+        const auto& item :
+        budgetPace
+    ) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // PROJECTED SPENDING
+    // ==========================================
+
+    cout
+        << "BUDGET_PROJECTED="
+        << endl;
+
+
+    auto budgetProjected =
+        analytics.getBudgetProjectedSpending();
+
+
+    for (
+        const auto& item :
+        budgetProjected
+    ) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // PROJECTED OVERSPENDING
+    // ==========================================
+
+    cout
+        << "BUDGET_PROJECTED_OVERSPENDING="
+        << endl;
+
+
+    auto projectedOverspending =
+        analytics.getBudgetProjectedOverspending();
+
+
+    for (
+        const auto& item :
+        projectedOverspending
+    ) {
+
+        cout
+            << item.first
+            << "="
+            << item.second
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET INSIGHTS
+    // ==========================================
+
+    cout
+        << "BUDGET_INSIGHTS="
+        << endl;
+
+
+    auto budgetInsights =
+        analytics.getBudgetInsights();
+
+
+    for (
+        const auto& insight :
+        budgetInsights
+    ) {
+
+        cout
+            << insight
+            << endl;
+    }
+
+
+    // ==========================================
+    // BUDGET RECOMMENDATIONS
+    // ==========================================
+
+    cout
+        << "BUDGET_RECOMMENDATIONS="
+        << endl;
+
+
+    auto recommendations =
+        analytics.getBudgetRecommendations();
+
+
+    for (
+        const auto& recommendation :
+        recommendations
+    ) {
+
+        /*
+         * Recommendations are already returned
+         * from Analytics.cpp in this format:
+         *
+         * Category|YYYY-MM=Recommendation
+         *
+         * Example:
+         *
+         * Food|2026-09=Reduce Food spending...
+         */
+
+        cout
+            << recommendation
+            << endl;
+    }
+
+
+    // ==========================================
+    // PROGRAM SUCCESS
     // ==========================================
 
     return 0;

@@ -17,7 +17,7 @@ import {
 } from "recharts";
 
 import { getAnalytics } from "../services/analyticsApi";
-
+import Loading from "../components/Loading";
 import "../styles/analytics.css";
 
 const Analytics = () => {
@@ -74,17 +74,12 @@ const Analytics = () => {
     })}`;
 
   };
+if (loading) {
+  return <Loading message="Loading analytics..." />;
+}
 
-
-  if (loading) {
-
-    return (
-      <div className="analytics-page">
-        <h1>Loading analytics...</h1>
-      </div>
-    );
-
-  }
+  
+  
 
 
   if (error) {

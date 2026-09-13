@@ -1,6 +1,9 @@
+
 import { useEffect, useState } from "react";
 
 import { getAnalytics } from "../services/analyticsApi";
+import Loading from "../components/Loading";
+import EmptyState from "../components/EmptyState";
 
 import "../styles/dashboard.css";
 
@@ -10,6 +13,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState("");
+
+  // =========================================
+  // LOAD ANALYTICS
+  // =========================================
 
   const loadAnalytics = async () => {
     try {
@@ -31,9 +38,17 @@ const Dashboard = () => {
     }
   };
 
+  // =========================================
+  // LOAD DATA ON PAGE OPEN
+  // =========================================
+
   useEffect(() => {
     loadAnalytics();
   }, []);
+
+  // =========================================
+  // FORMAT CURRENCY
+  // =========================================
 
   const formatCurrency = (amount) => {
     return `₹${Number(amount || 0).toLocaleString("en-IN", {
@@ -41,15 +56,21 @@ const Dashboard = () => {
     })}`;
   };
 
+  // =========================================
+  // LOADING STATE
+  // =========================================
+
   if (loading) {
     return (
       <div className="dashboard-page">
-        <div className="dashboard-loading">
-          Loading dashboard...
-        </div>
+        <Loading message="Loading dashboard..." />
       </div>
     );
   }
+
+  // =========================================
+  // ERROR STATE
+  // =========================================
 
   if (error) {
     return (
@@ -65,10 +86,33 @@ const Dashboard = () => {
     );
   }
 
+  // =========================================
+  // SAFETY CHECK
+  // =========================================
+
+  if (!analytics) {
+    return (
+      <div className="dashboard-page">
+        <EmptyState
+          title="No dashboard data"
+          message="We couldn't find any financial data to display."
+          actionText="Refresh Dashboard"
+          onAction={loadAnalytics}
+        />
+      </div>
+    );
+  }
+
+  // =========================================
+  // DASHBOARD
+  // =========================================
+
   return (
     <div className="dashboard-page">
 
-      {/* Header */}
+      {/* =====================================
+          HEADER
+      ====================================== */}
 
       <div className="dashboard-header">
 
@@ -89,9 +133,14 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Summary Cards */}
+
+      {/* =====================================
+          SUMMARY CARDS
+      ====================================== */}
 
       <div className="dashboard-cards">
+
+        {/* Total Income */}
 
         <div className="dashboard-card income-card">
 
@@ -112,6 +161,8 @@ const Dashboard = () => {
         </div>
 
 
+        {/* Total Expenses */}
+
         <div className="dashboard-card expense-card">
 
           <div className="card-icon">
@@ -131,6 +182,8 @@ const Dashboard = () => {
         </div>
 
 
+        {/* Balance */}
+
         <div className="dashboard-card balance-card">
 
           <div className="card-icon">
@@ -149,6 +202,8 @@ const Dashboard = () => {
 
         </div>
 
+
+        {/* Savings Rate */}
 
         <div className="dashboard-card savings-card">
 
@@ -172,11 +227,15 @@ const Dashboard = () => {
       </div>
 
 
-      {/* Analytics Section */}
+      {/* =====================================
+          ANALYTICS SECTION
+      ====================================== */}
 
       <div className="analytics-grid">
 
-        {/* Category Spending */}
+        {/* ===================================
+            CATEGORY SPENDING
+        ==================================== */}
 
         <div className="analytics-panel">
 
@@ -201,9 +260,10 @@ const Dashboard = () => {
               analytics.categorySpending || {}
             ).length === 0 ? (
 
-              <p className="empty-message">
-                No expenses recorded yet.
-              </p>
+              <EmptyState
+                title="No expenses yet"
+                message="Add some expenses to see where your money is going."
+              />
 
             ) : (
 
@@ -211,6 +271,7 @@ const Dashboard = () => {
                 analytics.categorySpending
               ).map(
                 ([category, amount]) => (
+
                   <div
                     className="category-row"
                     key={category}
@@ -247,6 +308,7 @@ const Dashboard = () => {
                     </div>
 
                   </div>
+
                 )
               )
 
@@ -257,7 +319,9 @@ const Dashboard = () => {
         </div>
 
 
-        {/* Financial Summary */}
+        {/* ===================================
+            FINANCIAL SUMMARY
+        ==================================== */}
 
         <div className="analytics-panel">
 
@@ -271,6 +335,8 @@ const Dashboard = () => {
 
 
           <div className="summary-list">
+
+            {/* Average Expense */}
 
             <div className="summary-item">
 
@@ -287,6 +353,8 @@ const Dashboard = () => {
             </div>
 
 
+            {/* Top Category */}
+
             <div className="summary-item">
 
               <span>
@@ -300,6 +368,8 @@ const Dashboard = () => {
 
             </div>
 
+
+            {/* Total Income */}
 
             <div className="summary-item">
 
@@ -316,6 +386,8 @@ const Dashboard = () => {
             </div>
 
 
+            {/* Total Expenses */}
+
             <div className="summary-item">
 
               <span>
@@ -330,6 +402,8 @@ const Dashboard = () => {
 
             </div>
 
+
+            {/* Balance */}
 
             <div className="summary-item">
 
@@ -356,3 +430,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

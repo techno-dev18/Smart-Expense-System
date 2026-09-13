@@ -25,6 +25,10 @@ int getCurrentDay() {
 }
 
 
+// ==========================================
+// GET CURRENT MONTH
+// ==========================================
+
 string getCurrentMonth() {
 
     time_t currentTime = time(nullptr);
@@ -53,6 +57,10 @@ string getCurrentMonth() {
     return result;
 }
 
+
+// ==========================================
+// GET DAYS IN MONTH
+// ==========================================
 
 int getDaysInMonth(
     const string& month
@@ -470,7 +478,7 @@ Analytics::getBudgetRemaining() const {
 
 
 // ==========================================
-// BUDGET USAGE %
+// BUDGET USAGE PERCENTAGE
 // ==========================================
 
 map<string, double>
@@ -604,7 +612,9 @@ Analytics::getBudgetSpendingPace() const {
             );
 
 
-        // Future budget
+        // ======================================
+        // FUTURE MONTH
+        // ======================================
 
         if (budget.month > currentMonth) {
 
@@ -615,7 +625,9 @@ Analytics::getBudgetSpendingPace() const {
         }
 
 
-        // Completed month
+        // ======================================
+        // COMPLETED MONTH
+        // ======================================
 
         if (budget.month < currentMonth) {
 
@@ -626,7 +638,9 @@ Analytics::getBudgetSpendingPace() const {
         }
 
 
-        // Current month
+        // ======================================
+        // CURRENT MONTH
+        // ======================================
 
         double expectedPercentage =
             (
@@ -719,7 +733,9 @@ Analytics::getBudgetProjectedSpending() const {
             );
 
 
-        // Future month
+        // ======================================
+        // FUTURE MONTH
+        // ======================================
 
         if (budget.month > currentMonth) {
 
@@ -730,7 +746,9 @@ Analytics::getBudgetProjectedSpending() const {
         }
 
 
-        // Previous completed month
+        // ======================================
+        // PREVIOUS MONTH
+        // ======================================
 
         if (budget.month < currentMonth) {
 
@@ -741,7 +759,9 @@ Analytics::getBudgetProjectedSpending() const {
         }
 
 
-        // Current month
+        // ======================================
+        // CURRENT MONTH
+        // ======================================
 
         double dailyAverage =
             actual /
@@ -947,7 +967,6 @@ Analytics::getBudgetRecommendations() const {
     auto pace =
         getBudgetSpendingPace();
 
-
     string currentMonth =
         getCurrentMonth();
 
@@ -973,6 +992,9 @@ Analytics::getBudgetRecommendations() const {
             pace[key];
 
 
+        string recommendation;
+
+
         // ======================================
         // PROJECTED OVERSPENDING
         // ======================================
@@ -982,17 +1004,14 @@ Analytics::getBudgetRecommendations() const {
             projectedOver > 0
         ) {
 
-            recommendations.push_back(
+            recommendation =
                 "Reduce " +
                 budget.category +
                 " spending. Your current pace projects about Rs. " +
                 to_string(projectedAmount) +
                 " spending this month, which is Rs. " +
                 to_string(projectedOver) +
-                " above your budget."
-            );
-
-            continue;
+                " above your budget.";
         }
 
 
@@ -1000,18 +1019,15 @@ Analytics::getBudgetRecommendations() const {
         // VERY FAST SPENDING
         // ======================================
 
-        if (
+        else if (
             budget.month == currentMonth &&
             spendingPace >= 120
         ) {
 
-            recommendations.push_back(
+            recommendation =
                 "Your " +
                 budget.category +
-                " spending is significantly ahead of pace. Try to slow down spending for the rest of the month."
-            );
-
-            continue;
+                " spending is significantly ahead of pace. Try to slow down spending for the rest of the month.";
         }
 
 
@@ -1019,18 +1035,15 @@ Analytics::getBudgetRecommendations() const {
         // SLIGHTLY FAST SPENDING
         // ======================================
 
-        if (
+        else if (
             budget.month == currentMonth &&
             spendingPace >= 100
         ) {
 
-            recommendations.push_back(
+            recommendation =
                 "Monitor your " +
                 budget.category +
-                " spending. You are spending slightly faster than the expected monthly pace."
-            );
-
-            continue;
+                " spending. You are spending slightly faster than the expected monthly pace.";
         }
 
 
@@ -1038,19 +1051,15 @@ Analytics::getBudgetRecommendations() const {
         // GOOD CONTROL
         // ======================================
 
-        if (
+        else if (
             budget.amount > 0 &&
-            spent <=
-                budget.amount * 0.5
+            spent <= budget.amount * 0.5
         ) {
 
-            recommendations.push_back(
+            recommendation =
                 "Good control on " +
                 budget.category +
-                " spending. You are currently well within your budget."
-            );
-
-            continue;
+                " spending. You are currently well within your budget.";
         }
 
 
@@ -1058,10 +1067,21 @@ Analytics::getBudgetRecommendations() const {
         // DEFAULT
         // ======================================
 
+        else {
+
+            recommendation =
+                "Continue monitoring your " +
+                budget.category +
+                " spending to stay within your monthly budget.";
+        }
+
+
+        // ======================================
+        // STORE KEYED RECOMMENDATION
+        // ======================================
+
         recommendations.push_back(
-            "Continue monitoring your " +
-            budget.category +
-            " spending to stay within your monthly budget."
+            key + "=" + recommendation
         );
     }
 

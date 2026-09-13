@@ -9,7 +9,7 @@ using namespace std;
 
 
 // ==========================================
-// TRANSACTION
+// TRANSACTION STRUCT
 // ==========================================
 
 struct Transaction {
@@ -25,7 +25,7 @@ struct Transaction {
 
 
 // ==========================================
-// BUDGET
+// BUDGET STRUCT
 // ==========================================
 
 struct Budget {
@@ -39,7 +39,7 @@ struct Budget {
 
 
 // ==========================================
-// ANALYTICS
+// ANALYTICS CLASS
 // ==========================================
 
 class Analytics {
@@ -64,7 +64,7 @@ public:
 
 
     // ======================================
-    // BASIC ANALYTICS
+    // BASIC FINANCIAL ANALYTICS
     // ======================================
 
     double getTotalIncome() const;
@@ -104,7 +104,7 @@ public:
 
 
     // ======================================
-    // BUDGET ANALYTICS
+    // BASIC BUDGET ANALYTICS
     // ======================================
 
     map<string, double>
@@ -121,7 +121,7 @@ public:
 
 
     // ======================================
-    // SMART BUDGET ANALYTICS
+    // BUDGET INTELLIGENCE
     // ======================================
 
     map<string, double>
@@ -141,8 +141,14 @@ public:
     vector<string>
     getBudgetInsights() const;
 
+
+    // ======================================
+    // BUDGET RECOMMENDATIONS
+    // ======================================
+
     vector<string>
     getBudgetRecommendations() const;
 };
+
 
 #endif

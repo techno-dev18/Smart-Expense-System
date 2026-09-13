@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-
+import Loading from "../components/Loading";
 import {
   addIncome,
   getIncome,
   updateIncome,
   deleteIncome,
 } from "../services/incomeApi";
-
+import EmptyState from "../components/EmptyState";
 const Income = () => {
   const initialForm = {
     source: "",
@@ -28,7 +28,9 @@ const Income = () => {
 
   const [editingId, setEditingId] = useState(null);
 
-
+if (loading) {
+  return <Loading message="Loading income..." />;
+}
   // Load income
   const loadIncome = async () => {
     try {
@@ -353,74 +355,21 @@ const Income = () => {
 
       {/* Income List */}
 
-      <div className="income-list">
-
-        <h2>Your Income</h2>
-
-        {loading ? (
-          <p>Loading income...</p>
-        ) : income.length === 0 ? (
-          <p>
-            No income found. Add your first income.
-          </p>
-        ) : (
-          income.map((item) => (
-            <div
-              className="income-card"
-              key={item._id}
-            >
-
-              <div>
-                <h3>{item.source}</h3>
-
-                <p>
-                  {item.description ||
-                    "No description"}
-                </p>
-
-                <small>
-                  {new Date(
-                    item.date
-                  ).toLocaleDateString()}
-                </small>
-
-                <small>
-                  {" "}
-                  • {item.paymentMethod}
-                </small>
-              </div>
-
-
-              <div>
-                <h3>
-                  ₹
-                  {Number(
-                    item.amount
-                  ).toLocaleString("en-IN")}
-                </h3>
-
-                <button
-                  onClick={() =>
-                    handleEdit(item)
-                  }
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDelete(item._id)
-                  }
-                >
-                  Delete
-                </button>
-              </div>
-
-            </div>
-          ))
-        )}
-
-      </div>
+      {income.length === 0 ? (
+  <EmptyState
+    title="No income recorded"
+    message="You haven't added any income sources yet. Add your salary, freelance income, business income, or other earnings."
+    actionText="Add Income"
+    onAction={() => setShowForm(true)}
+  />
+) : (
+  income.map((item) => (
+    <IncomeCard
+      key={item._id}
+      income={item}
+    />
+  ))
+)}
 
     </div>
   );
