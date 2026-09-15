@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Footer from "./components/Footer";
 function App() {
   return (
     <BrowserRouter>
@@ -108,6 +109,7 @@ function App() {
           />
 
         </Routes>
+        <Footer />
       </AuthProvider>
     </BrowserRouter>
   );
