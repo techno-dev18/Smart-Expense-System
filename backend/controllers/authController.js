@@ -2,10 +2,21 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// Generate JWT
+// ==========================================
+// GENERATE JWT
+// ==========================================
+
 const generateToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET is not configured."
+    );
+  }
+
   return jwt.sign(
-    { userId },
+    {
+      id: userId,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
@@ -13,128 +24,331 @@ const generateToken = (userId) => {
   );
 };
 
-// Register
+// ==========================================
+// USER RESPONSE
+// Never return password
+// ==========================================
+
+const getUserResponse = (user) => {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+  };
+};
+
+// ==========================================
+// REGISTER USER
+// ==========================================
+
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name,
+      email,
+      password,
+    } = req.body;
 
+    // ------------------------------------------
     // Check required fields
-    if (!name || !email || !password) {
+    // ------------------------------------------
+
+    if (
+      !name ||
+      !email ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide name, email and password",
+        message:
+          "Name, email and password are required.",
       });
     }
 
-    // Check password length
-    if (password.length < 6) {
+    // ------------------------------------------
+    // Normalize input
+    // ------------------------------------------
+
+    const normalizedName =
+      name.trim();
+
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
+    // ------------------------------------------
+    // Validate name
+    // ------------------------------------------
+
+    if (
+      normalizedName.length < 2
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters",
+        message:
+          "Name must contain at least 2 characters.",
       });
     }
 
+    if (
+      normalizedName.length > 50
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name cannot exceed 50 characters.",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate email
+    // ------------------------------------------
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (
+      !emailRegex.test(
+        normalizedEmail
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please provide a valid email address.",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate password
+    // ------------------------------------------
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must contain at least 8 characters.",
+      });
+    }
+
+    if (password.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password cannot exceed 100 characters.",
+      });
+    }
+
+    // ------------------------------------------
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    // ------------------------------------------
+
+    const existingUser =
+      await User.findOne({
+        email: normalizedEmail,
+      });
 
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message:
+          "User already exists.",
       });
     }
 
+    // ------------------------------------------
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // ------------------------------------------
 
+    const hashedPassword =
+      await bcrypt.hash(
+        password,
+        12
+      );
+
+    // ------------------------------------------
     // Create user
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
+    // ------------------------------------------
 
-    // Generate token
-    const token = generateToken(user._id);
+    const user =
+      await User.create({
+        name: normalizedName,
+        email: normalizedEmail,
+        password: hashedPassword,
+      });
 
-    res.status(201).json({
+    // ------------------------------------------
+    // Generate JWT
+    // ------------------------------------------
+
+    const token =
+      generateToken(user._id);
+
+    // ------------------------------------------
+    // Response
+    // ------------------------------------------
+
+    return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message:
+        "User registered successfully.",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user:
+        getUserResponse(user),
     });
   } catch (error) {
-    console.error("Register Error:", error);
+    console.error(
+      "Register Error:",
+      error
+    );
 
-    res.status(500).json({
+    // ------------------------------------------
+    // MongoDB duplicate key protection
+    // ------------------------------------------
+
+    if (
+      error.code === 11000
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "An account with this email already exists.",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message: "Server error",
+      message:
+        "Server error.",
     });
   }
 };
 
-// Login
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// ==========================================
+// LOGIN USER
+// ==========================================
 
-    // Check fields
-    if (!email || !password) {
+const loginUser = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      email,
+      password,
+    } = req.body;
+
+    // ------------------------------------------
+    // Check required fields
+    // ------------------------------------------
+
+    if (
+      !email ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide email and password",
+        message:
+          "Email and password are required.",
       });
     }
 
+    // ------------------------------------------
+    // Normalize email
+    // ------------------------------------------
+
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
+    // ------------------------------------------
+    // Validate email format
+    // ------------------------------------------
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (
+      !emailRegex.test(
+        normalizedEmail
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please provide a valid email address.",
+      });
+    }
+
+    // ------------------------------------------
     // Find user
-    const user = await User.findOne({ email });
+    // ------------------------------------------
+
+    const user =
+      await User.findOne({
+        email: normalizedEmail,
+      });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message:
+          "Invalid email or password.",
       });
     }
 
+    // ------------------------------------------
     // Compare password
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      user.password
-    );
+    // ------------------------------------------
+
+    const isPasswordCorrect =
+      await bcrypt.compare(
+        password,
+        user.password
+      );
 
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message:
+          "Invalid email or password.",
       });
     }
 
-    // Generate token
-    const token = generateToken(user._id);
+    // ------------------------------------------
+    // Generate JWT
+    // ------------------------------------------
 
-    res.status(200).json({
+    const token =
+      generateToken(user._id);
+
+    // ------------------------------------------
+    // Response
+    // ------------------------------------------
+
+    return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message:
+        "Login successful.",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user:
+        getUserResponse(user),
     });
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error(
+      "Login Error:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server error",
+      message:
+        "Server error.",
     });
   }
 };
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = {
   registerUser,

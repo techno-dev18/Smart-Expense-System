@@ -40,7 +40,7 @@ Thumbs.db
 
 # C++ executable
 backend/cpp/analytics.exe
-
+backend/cpp/analytics
 # C++ output
 cpp-engine/output/*
 !cpp-engine/output/.gitkeep
