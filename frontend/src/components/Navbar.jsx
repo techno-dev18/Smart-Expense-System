@@ -123,7 +123,19 @@ const Navbar = () => {
               >
                 Analytics
               </Link>
+<Link
+  to="/about"
+  onClick={closeMenu}
+>
+  About
+</Link>
 
+<Link
+  to="/contact"
+  onClick={closeMenu}
+>
+  Contact
+</Link>
               <Link
                 to="/profile"
                 onClick={closeMenu}

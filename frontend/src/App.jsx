@@ -17,6 +17,8 @@ import Analytics from "./pages/Analytics";
 import Navbar from "./components/Navbar";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 function App() {
   return (
     <BrowserRouter>
@@ -58,6 +60,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/about"
+  element={<About />}
+/>
+
+<Route
+  path="/contact"
+  element={<Contact />}
+/>
           <Route
             path="/expenses"
             element={
