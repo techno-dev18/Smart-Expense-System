@@ -1,4 +1,46 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment variables
 .env
-node_modules
-analytics.exe
-*.exe
+.env.*
+!.env.example
+
+frontend/.env
+frontend/.env.*
+!.env.example
+
+backend/.env
+backend/.env.*
+!.env.example
+
+# Build files
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# C++ generated executable
+backend/cpp/analytics.exe
+
+# C++ output
+cpp-engine/output/*
+!cpp-engine/output/.gitkeep
