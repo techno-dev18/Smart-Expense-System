@@ -1,37 +1,50 @@
 import { useEffect, useState } from "react";
+
 import Loading from "../components/Loading";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import IncomeCard from "../components/IncomeCard";
+
 import {
-  addIncome,
   getIncome,
+  addIncome,
   updateIncome,
   deleteIncome,
 } from "../services/incomeApi";
-import EmptyState from "../components/EmptyState";
+
+import "../styles/income.css";
+import "../styles/forms.css";
+
 const Income = () => {
   const initialForm = {
     source: "",
     amount: "",
     description: "",
     date: "",
-    paymentMethod: "Bank Transfer",
+    paymentMethod: "Cash",
   };
 
-  const [formData, setFormData] = useState(initialForm);
+  const [formData, setFormData] =
+    useState(initialForm);
 
-  const [income, setIncome] = useState([]);
+  const [income, setIncome] =
+    useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] =
+    useState(false);
 
-  const [editingId, setEditingId] = useState(null);
+  const [error, setError] =
+    useState("");
 
-if (loading) {
-  return <Loading message="Loading income..." />;
-}
-  // Load income
+  const [success, setSuccess] =
+    useState("");
+
+  const [editingId, setEditingId] =
+    useState(null);
+
   const loadIncome = async () => {
     try {
       setLoading(true);
@@ -39,8 +52,15 @@ if (loading) {
 
       const data = await getIncome();
 
-      setIncome(data.income || []);
+      setIncome(
+        data.income || []
+      );
     } catch (error) {
+      console.error(
+        "Income Error:",
+        error
+      );
+
       setError(
         error.response?.data?.message ||
           "Failed to load income."
@@ -50,35 +70,85 @@ if (loading) {
     }
   };
 
-
   useEffect(() => {
     loadIncome();
   }, []);
 
-
-  // Handle input
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+
+    setError("");
+    setSuccess("");
   };
 
+  const validateForm = () => {
+    const amount =
+      Number(formData.amount);
 
-  // Add / Update
+    if (!formData.source) {
+      return "Please select an income source.";
+    }
+
+    if (
+      formData.amount === "" ||
+      formData.amount === null
+    ) {
+      return "Amount is required.";
+    }
+
+    if (!Number.isFinite(amount)) {
+      return "Please enter a valid amount.";
+    }
+
+    if (amount <= 0) {
+      return "Amount must be greater than 0.";
+    }
+
+    if (amount > 100000000) {
+      return "Amount is too large.";
+    }
+
+    if (
+      formData.description.length > 200
+    ) {
+      return "Description cannot exceed 200 characters.";
+    }
+
+    if (
+      formData.date &&
+      Number.isNaN(
+        new Date(
+          formData.date
+        ).getTime()
+      )
+    ) {
+      return "Please enter a valid date.";
+    }
+
+    return "";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
     setSuccess("");
 
-    if (!formData.source || !formData.amount) {
-      setError("Source and amount are required.");
-      return;
-    }
+    const validationError =
+      validateForm();
 
-    if (Number(formData.amount) <= 0) {
-      setError("Amount must be greater than 0.");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -86,12 +156,27 @@ if (loading) {
       setSubmitting(true);
 
       const data = {
-        ...formData,
-        amount: Number(formData.amount),
+        source:
+          formData.source,
+
+        amount:
+          Number(formData.amount),
+
+        description:
+          formData.description.trim(),
+
+        date:
+          formData.date,
+
+        paymentMethod:
+          formData.paymentMethod,
       };
 
       if (editingId) {
-        await updateIncome(editingId, data);
+        await updateIncome(
+          editingId,
+          data
+        );
 
         setSuccess(
           "Income updated successfully."
@@ -109,37 +194,56 @@ if (loading) {
 
       await loadIncome();
     } catch (error) {
+      console.error(
+        "Save Income Error:",
+        error
+      );
+
       setError(
         error.response?.data?.message ||
-          "Something went wrong."
+          "Something went wrong while saving the income."
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-
-  // Edit
   const handleEdit = (item) => {
-    setEditingId(item._id);
+    setEditingId(
+      item._id
+    );
 
     setFormData({
-      source: item.source,
-      amount: item.amount,
-      description: item.description || "",
+      source:
+        item.source || "",
+
+      amount:
+        item.amount || "",
+
+      description:
+        item.description || "",
+
       date: item.date
-        ? item.date.substring(0, 10)
+        ? item.date.substring(
+            0,
+            10
+          )
         : "",
+
       paymentMethod:
-        item.paymentMethod || "Bank Transfer",
+        item.paymentMethod ||
+        "Cash",
     });
 
     setError("");
     setSuccess("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-
-  // Cancel edit
   const handleCancelEdit = () => {
     setEditingId(null);
     setFormData(initialForm);
@@ -147,12 +251,13 @@ if (loading) {
     setSuccess("");
   };
 
-
-  // Delete
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this income?"
-    );
+  const handleDelete = async (
+    id
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this income?"
+      );
 
     if (!confirmed) {
       return;
@@ -170,6 +275,11 @@ if (loading) {
 
       await loadIncome();
     } catch (error) {
+      console.error(
+        "Delete Income Error:",
+        error
+      );
+
       setError(
         error.response?.data?.message ||
           "Failed to delete income."
@@ -177,18 +287,49 @@ if (loading) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="income-page">
+        <Loading
+          message="Loading income..."
+        />
+      </div>
+    );
+  }
+
+  if (
+    error &&
+    income.length === 0
+  ) {
+    return (
+      <div className="income-page">
+        <ErrorState
+          title="Unable to load income"
+          message={error}
+          actionText="Try Again"
+          onAction={loadIncome}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="income-page">
 
-      <h1>Income</h1>
+      <div className="page-header">
 
-      <p>
-        Track and manage your sources of income.
-      </p>
+        <div>
+          <h1>
+            Income
+          </h1>
 
+          <p>
+            Track and manage your
+            income sources.
+          </p>
+        </div>
 
-      {/* Messages */}
+      </div>
 
       {error && (
         <div className="error-message">
@@ -202,9 +343,6 @@ if (loading) {
         </div>
       )}
 
-
-      {/* Income Form */}
-
       <div className="income-form-container">
 
         <h2>
@@ -213,16 +351,29 @@ if (loading) {
             : "Add Income"}
         </h2>
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+        >
 
           <div>
-            <label>Income Source</label>
+
+            <label htmlFor="source">
+              Income Source
+            </label>
 
             <select
+              id="source"
               name="source"
-              value={formData.source}
-              onChange={handleChange}
+              value={
+                formData.source
+              }
+              onChange={
+                handleChange
+              }
+              required
             >
+
               <option value="">
                 Select Source
               </option>
@@ -254,67 +405,105 @@ if (loading) {
               <option value="Other">
                 Other
               </option>
+
             </select>
+
           </div>
 
-
           <div>
-            <label>Amount</label>
+
+            <label htmlFor="amount">
+              Amount
+            </label>
 
             <input
+              id="amount"
               type="number"
               name="amount"
               placeholder="Enter amount"
-              min="1"
-              value={formData.amount}
-              onChange={handleChange}
+              min="0.01"
+              max="100000000"
+              step="0.01"
+              value={
+                formData.amount
+              }
+              onChange={
+                handleChange
+              }
+              required
             />
+
           </div>
 
-
           <div>
-            <label>Description</label>
+
+            <label htmlFor="description">
+              Description
+            </label>
 
             <input
+              id="description"
               type="text"
               name="description"
-              placeholder="e.g. September salary"
-              value={formData.description}
-              onChange={handleChange}
+              placeholder="e.g. Monthly salary"
+              maxLength="200"
+              value={
+                formData.description
+              }
+              onChange={
+                handleChange
+              }
             />
+
           </div>
 
-
           <div>
-            <label>Date</label>
+
+            <label htmlFor="date">
+              Date
+            </label>
 
             <input
+              id="date"
               type="date"
               name="date"
-              value={formData.date}
-              onChange={handleChange}
+              value={
+                formData.date
+              }
+              onChange={
+                handleChange
+              }
             />
+
           </div>
 
-
           <div>
-            <label>Payment Method</label>
+
+            <label htmlFor="paymentMethod">
+              Payment Method
+            </label>
 
             <select
+              id="paymentMethod"
               name="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={handleChange}
+              value={
+                formData.paymentMethod
+              }
+              onChange={
+                handleChange
+              }
             >
-              <option value="Bank Transfer">
-                Bank Transfer
+
+              <option value="Cash">
+                Cash
               </option>
 
               <option value="UPI">
                 UPI
               </option>
 
-              <option value="Cash">
-                Cash
+              <option value="Bank Transfer">
+                Bank Transfer
               </option>
 
               <option value="Cheque">
@@ -324,52 +513,88 @@ if (loading) {
               <option value="Other">
                 Other
               </option>
+
             </select>
+
           </div>
 
+          <div className="form-actions">
 
-          <button
-            type="submit"
-            disabled={submitting}
-          >
-            {submitting
-              ? "Saving..."
-              : editingId
-              ? "Update Income"
-              : "Add Income"}
-          </button>
-
-
-          {editingId && (
             <button
-              type="button"
-              onClick={handleCancelEdit}
+              type="submit"
+              disabled={submitting}
             >
-              Cancel
+              {submitting
+                ? "Saving..."
+                : editingId
+                ? "Update Income"
+                : "Add Income"}
             </button>
-          )}
+
+            {editingId && (
+              <button
+                type="button"
+                onClick={
+                  handleCancelEdit
+                }
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+            )}
+
+          </div>
 
         </form>
+
       </div>
 
+      <div className="income-list">
 
-      {/* Income List */}
+        <h2>
+          Your Income
+        </h2>
 
-      {income.length === 0 ? (
-  <EmptyState
-    title="No income recorded"
-    message="You haven't added any income sources yet. Add your salary, freelance income, business income, or other earnings."
-    actionText="Add Income"
-    onAction={() => setShowForm(true)}
-  />
-) : (
-  income.map((item) => (
-    <IncomeCard
-      key={item._id}
-      income={item}
-    />
-  ))
-)}
+        {income.length === 0 ? (
+
+          <EmptyState
+            title="No income yet"
+            message="You haven't added any income. Start tracking your earnings to understand your financial position."
+            actionText="Add Your First Income"
+            onAction={() => {
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              });
+            }}
+          />
+
+        ) : (
+
+          <div className="income-items">
+
+            {income.map(
+              (item) => (
+                <IncomeCard
+                  key={
+                    item._id
+                  }
+                  income={item}
+                  onEdit={
+                    handleEdit
+                  }
+                  onDelete={
+                    handleDelete
+                  }
+                />
+              )
+            )}
+
+          </div>
+
+        )}
+
+      </div>
 
     </div>
   );

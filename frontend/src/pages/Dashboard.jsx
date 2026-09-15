@@ -1,130 +1,189 @@
-
 import { useEffect, useState } from "react";
 
 import { getAnalytics } from "../services/analyticsApi";
+
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import DashboardCard from "../components/DashboardCard";
 
 import "../styles/dashboard.css";
 
+
 const Dashboard = () => {
-  const [analytics, setAnalytics] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] =
+    useState(null);
 
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(true);
 
-  // =========================================
+  const [error, setError] =
+    useState("");
+
+
+  // ==========================================
   // LOAD ANALYTICS
-  // =========================================
+  // ==========================================
 
   const loadAnalytics = async () => {
+
     try {
+
       setLoading(true);
+
       setError("");
 
-      const data = await getAnalytics();
+      const data =
+        await getAnalytics();
 
-      setAnalytics(data.analytics);
+      setAnalytics(
+        data.analytics
+      );
+
     } catch (error) {
-      console.error("Analytics Error:", error);
+
+      console.error(
+        "Analytics Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
           "Failed to load dashboard"
       );
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
-  // =========================================
-  // LOAD DATA ON PAGE OPEN
-  // =========================================
+
+  // ==========================================
+  // LOAD ON PAGE OPEN
+  // ==========================================
 
   useEffect(() => {
+
     loadAnalytics();
+
   }, []);
 
-  // =========================================
-  // FORMAT CURRENCY
-  // =========================================
 
-  const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString("en-IN", {
-      maximumFractionDigits: 2,
-    })}`;
+  // ==========================================
+  // FORMAT CURRENCY
+  // ==========================================
+
+  const formatCurrency = (
+    amount
+  ) => {
+
+    return `₹${Number(
+      amount || 0
+    ).toLocaleString(
+      "en-IN",
+      {
+        maximumFractionDigits: 2,
+      }
+    )}`;
+
   };
 
-  // =========================================
-  // LOADING STATE
-  // =========================================
+
+  // ==========================================
+  // LOADING
+  // ==========================================
 
   if (loading) {
+
     return (
       <div className="dashboard-page">
-        <Loading message="Loading dashboard..." />
+
+        <Loading
+          message="Loading dashboard..."
+        />
+
       </div>
     );
+
   }
 
-  // =========================================
-  // ERROR STATE
-  // =========================================
+
+  // ==========================================
+  // ERROR
+  // ==========================================
 
   if (error) {
+
     return (
       <div className="dashboard-page">
-        <div className="dashboard-error">
-          <p>{error}</p>
 
-          <button onClick={loadAnalytics}>
-            Try Again
-          </button>
-        </div>
+        <ErrorState
+          title="Unable to load dashboard"
+          message={error}
+          actionText="Try Again"
+          onAction={loadAnalytics}
+        />
+
       </div>
     );
+
   }
 
-  // =========================================
-  // SAFETY CHECK
-  // =========================================
+
+  // ==========================================
+  // EMPTY
+  // ==========================================
 
   if (!analytics) {
+
     return (
       <div className="dashboard-page">
+
         <EmptyState
           title="No dashboard data"
           message="We couldn't find any financial data to display."
           actionText="Refresh Dashboard"
           onAction={loadAnalytics}
         />
+
       </div>
     );
+
   }
 
-  // =========================================
-  // DASHBOARD
-  // =========================================
+
+  // ==========================================
+  // PAGE
+  // ==========================================
 
   return (
     <div className="dashboard-page">
 
-      {/* =====================================
+      {/* ======================================
           HEADER
       ====================================== */}
 
       <div className="dashboard-header">
 
         <div>
-          <h1>Dashboard</h1>
+
+          <h1>
+            Dashboard
+          </h1>
 
           <p>
-            Here's an overview of your financial activity.
+            Here's an overview of your
+            financial activity.
           </p>
+
         </div>
 
+
         <button
+          type="button"
           className="refresh-button"
           onClick={loadAnalytics}
         >
@@ -134,106 +193,61 @@ const Dashboard = () => {
       </div>
 
 
-      {/* =====================================
-          SUMMARY CARDS
+      {/* ======================================
+          DASHBOARD CARDS
       ====================================== */}
 
       <div className="dashboard-cards">
 
-        {/* Total Income */}
-
-        <div className="dashboard-card income-card">
-
-          <div className="card-icon">
-            ₹
-          </div>
-
-          <div>
-            <p>Total Income</p>
-
-            <h2>
-              {formatCurrency(
-                analytics.totalIncome
-              )}
-            </h2>
-          </div>
-
-        </div>
+        <DashboardCard
+          title="Total Income"
+          value={formatCurrency(
+            analytics.totalIncome
+          )}
+          icon="₹"
+          className="income-card"
+        />
 
 
-        {/* Total Expenses */}
-
-        <div className="dashboard-card expense-card">
-
-          <div className="card-icon">
-            ↓
-          </div>
-
-          <div>
-            <p>Total Expenses</p>
-
-            <h2>
-              {formatCurrency(
-                analytics.totalExpenses
-              )}
-            </h2>
-          </div>
-
-        </div>
+        <DashboardCard
+          title="Total Expenses"
+          value={formatCurrency(
+            analytics.totalExpenses
+          )}
+          icon="↓"
+          className="expense-card"
+        />
 
 
-        {/* Balance */}
-
-        <div className="dashboard-card balance-card">
-
-          <div className="card-icon">
-            =
-          </div>
-
-          <div>
-            <p>Balance</p>
-
-            <h2>
-              {formatCurrency(
-                analytics.balance
-              )}
-            </h2>
-          </div>
-
-        </div>
+        <DashboardCard
+          title="Balance"
+          value={formatCurrency(
+            analytics.balance
+          )}
+          icon="="
+          className="balance-card"
+        />
 
 
-        {/* Savings Rate */}
-
-        <div className="dashboard-card savings-card">
-
-          <div className="card-icon">
-            %
-          </div>
-
-          <div>
-            <p>Savings Rate</p>
-
-            <h2>
-              {Number(
-                analytics.savingsRate || 0
-              ).toFixed(1)}
-              %
-            </h2>
-          </div>
-
-        </div>
+        <DashboardCard
+          title="Savings Rate"
+          value={`${Number(
+            analytics.savingsRate || 0
+          ).toFixed(1)}%`}
+          icon="%"
+          className="savings-card"
+        />
 
       </div>
 
 
-      {/* =====================================
-          ANALYTICS SECTION
+      {/* ======================================
+          ANALYTICS GRID
       ====================================== */}
 
       <div className="analytics-grid">
 
-        {/* ===================================
+        {/* ====================================
             CATEGORY SPENDING
         ==================================== */}
 
@@ -242,6 +256,7 @@ const Dashboard = () => {
           <div className="panel-header">
 
             <div>
+
               <h2>
                 Category Spending
               </h2>
@@ -249,6 +264,7 @@ const Dashboard = () => {
               <p>
                 Where your money is going
               </p>
+
             </div>
 
           </div>
@@ -257,7 +273,8 @@ const Dashboard = () => {
           <div className="category-list">
 
             {Object.keys(
-              analytics.categorySpending || {}
+              analytics.categorySpending ||
+                {}
             ).length === 0 ? (
 
               <EmptyState
@@ -284,7 +301,9 @@ const Dashboard = () => {
                       </span>
 
                       <strong>
-                        {formatCurrency(amount)}
+                        {formatCurrency(
+                          amount
+                        )}
                       </strong>
 
                     </div>
@@ -296,9 +315,14 @@ const Dashboard = () => {
                         className="category-bar-fill"
                         style={{
                           width: `${
-                            analytics.totalExpenses > 0
-                              ? (amount /
-                                  analytics.totalExpenses) *
+                            analytics.totalExpenses >
+                            0
+                              ? (Number(
+                                  amount
+                                ) /
+                                  Number(
+                                    analytics.totalExpenses
+                                  )) *
                                 100
                               : 0
                           }%`,
@@ -319,7 +343,7 @@ const Dashboard = () => {
         </div>
 
 
-        {/* ===================================
+        {/* ====================================
             FINANCIAL SUMMARY
         ==================================== */}
 
@@ -330,13 +354,12 @@ const Dashboard = () => {
           </h2>
 
           <p className="panel-subtitle">
-            Key insights from your transactions
+            Key insights from your
+            transactions
           </p>
 
 
           <div className="summary-list">
-
-            {/* Average Expense */}
 
             <div className="summary-item">
 
@@ -353,8 +376,6 @@ const Dashboard = () => {
             </div>
 
 
-            {/* Top Category */}
-
             <div className="summary-item">
 
               <span>
@@ -368,8 +389,6 @@ const Dashboard = () => {
 
             </div>
 
-
-            {/* Total Income */}
 
             <div className="summary-item">
 
@@ -386,8 +405,6 @@ const Dashboard = () => {
             </div>
 
 
-            {/* Total Expenses */}
-
             <div className="summary-item">
 
               <span>
@@ -402,8 +419,6 @@ const Dashboard = () => {
 
             </div>
 
-
-            {/* Balance */}
 
             <div className="summary-item">
 
@@ -429,5 +444,5 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
 
+export default Dashboard;

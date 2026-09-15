@@ -14,12 +14,14 @@ import Signup from "./pages/Signup";
 import Budget from "./pages/Budget";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Analytics from "./pages/Analytics";
-
-
+import Navbar from "./components/Navbar";
+import Profile from "./pages/Profile";
+import NotFound from "./pages/NotFound";
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Navbar />
         <Routes>
 
           {/* Public Routes */}
@@ -44,38 +46,50 @@ function App() {
               </ProtectedRoute>
             }
           />
-<Route
-  path="/expenses"
-  element={
-    <ProtectedRoute>
-      <Expenses />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/income"
-  element={
-    <ProtectedRoute>
-      <Income />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/budget"
-  element={
-    <ProtectedRoute>
-      <Budget />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/analytics"
-  element={
-    <ProtectedRoute>
-      <Analytics />
-    </ProtectedRoute>
-  }
-/>
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <ProtectedRoute>
+                <Expenses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/income"
+            element={
+              <ProtectedRoute>
+                <Income />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/budget"
+            element={
+              <ProtectedRoute>
+                <Budget />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
           {/* Unknown route */}
           <Route
             path="*"

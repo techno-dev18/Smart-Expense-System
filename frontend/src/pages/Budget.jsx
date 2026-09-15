@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 
-import React, { useEffect, useState } from "react";
+import Loading from "../components/Loading";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import BudgetCard from "../components/BudgetCard";
 
 import {
   getBudgets,
@@ -10,36 +14,42 @@ import {
 
 import { getAnalytics } from "../services/analyticsApi";
 
-import Loading from "../components/Loading";
-import EmptyState from "../components/EmptyState";
-
+import "../styles/budget.css";
 import "../styles/forms.css";
 
-function Budget() {
-  // ==========================================
-  // STATES
-  // ==========================================
+const Budget = () => {
+  const currentDate = new Date();
 
-  const [budgets, setBudgets] = useState([]);
-
-  const [analytics, setAnalytics] = useState(null);
-
-  const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState("");
-
-  const [editingId, setEditingId] = useState(null);
-
-  const [formData, setFormData] = useState({
+  const initialForm = {
     category: "",
     amount: "",
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-  });
+    month: currentDate.getMonth() + 1,
+    year: currentDate.getFullYear(),
+  };
 
-  // ==========================================
-  // LOAD DATA
-  // ==========================================
+  const [formData, setFormData] =
+    useState(initialForm);
+
+  const [budgets, setBudgets] =
+    useState([]);
+
+  const [analytics, setAnalytics] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+  const [editingId, setEditingId] =
+    useState(null);
 
   const loadData = async () => {
     try {
@@ -47,48 +57,38 @@ function Budget() {
       setError("");
 
       const [
-        budgetResponse,
-        analyticsResponse,
+        budgetData,
+        analyticsData,
       ] = await Promise.all([
         getBudgets(),
         getAnalytics(),
       ]);
 
       setBudgets(
-        budgetResponse.budgets || []
+        budgetData.budgets || []
       );
 
       setAnalytics(
-        analyticsResponse.analytics || {}
+        analyticsData.analytics || {}
       );
-
-    } catch (err) {
+    } catch (error) {
       console.error(
-        "Budget loading error:",
-        err
+        "Budget Error:",
+        error
       );
 
       setError(
-        err.response?.data?.message ||
-          "Failed to load budget data."
+        error.response?.data?.message ||
+          "Failed to load budget information."
       );
-
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================
-  // LOAD DATA ON PAGE OPEN
-  // ==========================================
-
   useEffect(() => {
     loadData();
   }, []);
-
-  // ==========================================
-  // FORM INPUT
-  // ==========================================
 
   const handleChange = (e) => {
     const {
@@ -96,25 +96,89 @@ function Budget() {
       value,
     } = e.target;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+
+    setError("");
+    setSuccess("");
   };
 
-  // ==========================================
-  // SUBMIT
-  // ==========================================
+  const validateForm = () => {
+    const amount =
+      Number(formData.amount);
+
+    const month =
+      Number(formData.month);
+
+    const year =
+      Number(formData.year);
+
+    if (!formData.category) {
+      return "Please select a budget category.";
+    }
+
+    if (
+      formData.amount === "" ||
+      formData.amount === null
+    ) {
+      return "Budget amount is required.";
+    }
+
+    if (!Number.isFinite(amount)) {
+      return "Please enter a valid budget amount.";
+    }
+
+    if (amount <= 0) {
+      return "Budget amount must be greater than 0.";
+    }
+
+    if (amount > 100000000) {
+      return "Budget amount is too large.";
+    }
+
+    if (
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      return "Please select a valid month.";
+    }
+
+    if (
+      !Number.isInteger(year) ||
+      year < 2000 ||
+      year > 2100
+    ) {
+      return "Please enter a valid year.";
+    }
+
+    return "";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setError("");
+    setSuccess("");
+
+    const validationError =
+      validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     try {
-      setError("");
+      setSubmitting(true);
 
       const data = {
         category:
-          formData.category.trim(),
+          formData.category,
 
         amount:
           Number(formData.amount),
@@ -126,85 +190,48 @@ function Budget() {
           Number(formData.year),
       };
 
-      // Category validation
-
-      if (!data.category) {
-        setError(
-          "Please enter a category."
-        );
-
-        return;
-      }
-
-      // Amount validation
-
-      if (data.amount <= 0) {
-        setError(
-          "Budget amount must be greater than 0."
-        );
-
-        return;
-      }
-
-      // Update existing budget
-
       if (editingId) {
         await updateBudget(
           editingId,
           data
         );
-      }
 
-      // Create new budget
-
-      else {
+        setSuccess(
+          "Budget updated successfully."
+        );
+      } else {
         await addBudget(data);
+
+        setSuccess(
+          "Budget added successfully."
+        );
       }
 
-      // Reset form
+      setFormData({
+        ...initialForm,
+        month:
+          currentDate.getMonth() + 1,
+        year:
+          currentDate.getFullYear(),
+      });
 
-      resetForm();
-
-      // Reload budget + analytics
+      setEditingId(null);
 
       await loadData();
-
-    } catch (err) {
+    } catch (error) {
       console.error(
-        "Budget save error:",
-        err
+        "Save Budget Error:",
+        error
       );
 
       setError(
-        err.response?.data?.message ||
-          "Failed to save budget."
+        error.response?.data?.message ||
+          "Something went wrong while saving the budget."
       );
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  // ==========================================
-  // RESET FORM
-  // ==========================================
-
-  const resetForm = () => {
-    setFormData({
-      category: "",
-
-      amount: "",
-
-      month:
-        new Date().getMonth() + 1,
-
-      year:
-        new Date().getFullYear(),
-    });
-
-    setEditingId(null);
-  };
-
-  // ==========================================
-  // EDIT
-  // ==========================================
 
   const handleEdit = (budget) => {
     setEditingId(
@@ -213,17 +240,20 @@ function Budget() {
 
     setFormData({
       category:
-        budget.category,
+        budget.category || "",
 
       amount:
-        budget.amount,
+        budget.amount || "",
 
       month:
-        budget.month,
+        budget.month || currentDate.getMonth() + 1,
 
       year:
-        budget.year,
+        budget.year || currentDate.getFullYear(),
     });
+
+    setError("");
+    setSuccess("");
 
     window.scrollTo({
       top: 0,
@@ -231,11 +261,24 @@ function Budget() {
     });
   };
 
-  // ==========================================
-  // DELETE
-  // ==========================================
+  const handleCancelEdit = () => {
+    setEditingId(null);
 
-  const handleDelete = async (id) => {
+    setFormData({
+      ...initialForm,
+      month:
+        currentDate.getMonth() + 1,
+      year:
+        currentDate.getFullYear(),
+    });
+
+    setError("");
+    setSuccess("");
+  };
+
+  const handleDelete = async (
+    id
+  ) => {
     const confirmed =
       window.confirm(
         "Are you sure you want to delete this budget?"
@@ -247,99 +290,134 @@ function Budget() {
 
     try {
       setError("");
+      setSuccess("");
 
       await deleteBudget(id);
 
-      await loadData();
+      setSuccess(
+        "Budget deleted successfully."
+      );
 
-    } catch (err) {
+      await loadData();
+    } catch (error) {
       console.error(
-        "Budget delete error:",
-        err
+        "Delete Budget Error:",
+        error
       );
 
       setError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           "Failed to delete budget."
       );
     }
   };
 
-  // ==========================================
-  // BUDGET KEY
-  // ==========================================
-
-  const getBudgetKey = (budget) => {
-    return (
-      `${budget.category}|` +
-      `${String(budget.year).padStart(4, "0")}-` +
-      `${String(budget.month).padStart(2, "0")}`
-    );
+  const getBudgetKey = (
+    category,
+    month,
+    year
+  ) => {
+    return `${category}|${month}|${year}`;
   };
-
-  // ==========================================
-  // STATUS
-  // ==========================================
 
   const getBudgetStatus = (
-    usage,
-    overspending
+    usage
   ) => {
-    if (overspending > 0) {
+    const value =
+      Number(usage || 0);
+
+    if (value >= 100) {
       return {
-        className: "overspent",
-        label: "Overspent",
+        label: "Over Budget",
+        className:
+          "budget-status-danger",
       };
     }
 
-    if (usage >= 90) {
+    if (value >= 80) {
       return {
-        className: "near-limit",
         label: "Near Limit",
-      };
-    }
-
-    if (usage >= 70) {
-      return {
-        className: "warning",
-        label: "Watch Spending",
+        className:
+          "budget-status-warning",
       };
     }
 
     return {
-      className: "safe",
-      label: "Within Budget",
-    };
-  };
-
-  // ==========================================
-  // PACE STATUS
-  // ==========================================
-
-  const getPaceStatus = (pace) => {
-    if (pace >= 120) {
-      return {
-        className: "pace-danger",
-        label: "Spending Too Fast",
-      };
-    }
-
-    if (pace >= 100) {
-      return {
-        className: "pace-warning",
-        label: "Above Expected Pace",
-      };
-    }
-
-    return {
-      className: "pace-good",
       label: "On Track",
+      className:
+        "budget-status-safe",
     };
   };
 
-  // ==========================================
-  // LOADING STATE
-  // ==========================================
+  const getPaceStatus = (
+    pace
+  ) => {
+    const value =
+      Number(pace || 0);
+
+    if (value >= 120) {
+      return {
+        label: "High Pace",
+        className:
+          "pace-danger",
+      };
+    }
+
+    if (value >= 100) {
+      return {
+        label: "Ahead",
+        className:
+          "pace-warning",
+      };
+    }
+
+    return {
+      label: "Healthy",
+      className:
+        "pace-safe",
+    };
+  };
+
+  const getRecommendation = (
+    budget,
+    actual,
+    projectedOverspending,
+    pace
+  ) => {
+    const currentMonth =
+      currentDate.getMonth() + 1;
+
+    const currentYear =
+      currentDate.getFullYear();
+
+    if (
+      budget.month === currentMonth &&
+      budget.year === currentYear
+    ) {
+      if (
+        Number(projectedOverspending) > 0
+      ) {
+        return `Reduce ${budget.category} spending to avoid exceeding your monthly budget.`;
+      }
+
+      if (Number(pace) >= 120) {
+        return `Your ${budget.category} spending is significantly ahead of pace. Consider reducing spending for the rest of the month.`;
+      }
+
+      if (Number(pace) >= 100) {
+        return `Your ${budget.category} spending is slightly ahead of the expected pace. Keep an eye on upcoming expenses.`;
+      }
+    }
+
+    if (
+      Number(actual) <=
+      Number(budget.amount) * 0.5
+    ) {
+      return `Your ${budget.category} spending is currently well controlled.`;
+    }
+
+    return `Continue monitoring your ${budget.category} spending to stay within budget.`;
+  };
 
   if (loading) {
     return (
@@ -351,141 +429,196 @@ function Budget() {
     );
   }
 
-  // ==========================================
-  // ERROR STATE
-  // ==========================================
-
-  if (error && !analytics) {
+  if (
+    error &&
+    budgets.length === 0
+  ) {
     return (
       <div className="budget-page">
-
-        <div className="form-error">
-          {error}
-        </div>
-
-        <button
-          type="button"
-          className="primary-button"
-          onClick={loadData}
-        >
-          Try Again
-        </button>
-
+        <ErrorState
+          title="Unable to load budgets"
+          message={error}
+          actionText="Try Again"
+          onAction={loadData}
+        />
       </div>
     );
   }
 
-  // ==========================================
-  // PAGE
-  // ==========================================
+  const budgetActual =
+    analytics?.budgetActual || {};
+
+  const budgetRemaining =
+    analytics?.budgetRemaining || {};
+
+  const budgetUsage =
+    analytics?.budgetUsage || {};
+
+  const budgetOverspending =
+    analytics?.budgetOverspending || {};
+
+  const budgetPace =
+    analytics?.budgetPace || {};
+
+  const budgetProjected =
+    analytics?.budgetProjected || {};
+
+  const budgetProjectedOverspending =
+    analytics?.budgetProjectedOverspending ||
+    {};
+
+  const budgetRecommendations =
+    analytics?.budgetRecommendations ||
+    {};
 
   return (
     <div className="budget-page">
 
-      {/* ======================================
-          HEADER
-      ====================================== */}
-
-      <div className="budget-header">
+      <div className="page-header">
 
         <div>
 
           <h1>
-            Budget Intelligence
+            Budget
           </h1>
 
           <p>
-            Plan your spending and understand
-            where your money is going.
+            Set spending limits and
+            monitor your financial goals.
           </p>
 
         </div>
 
       </div>
 
-
-      {/* ======================================
-          ERROR
-      ====================================== */}
-
       {error && (
-        <div className="form-error">
+        <div className="error-message">
           {error}
         </div>
       )}
 
+      {success && (
+        <div className="success-message">
+          {success}
+        </div>
+      )}
 
-      {/* ======================================
-          FORM
-      ====================================== */}
-
-      <div className="budget-form-card">
+      <div className="budget-form-container">
 
         <h2>
           {editingId
-            ? "Update Budget"
+            ? "Edit Budget"
             : "Create Budget"}
         </h2>
 
-
         <form
           onSubmit={handleSubmit}
-          className="budget-form"
+          noValidate
         >
 
-          {/* Category */}
+          <div>
 
-          <div className="form-group">
-
-            <label>
+            <label htmlFor="category">
               Category
             </label>
 
-            <input
-              type="text"
+            <select
+              id="category"
               name="category"
-              value={formData.category}
-              onChange={handleChange}
-              placeholder="e.g. Food"
+              value={
+                formData.category
+              }
+              onChange={
+                handleChange
+              }
               required
-            />
+            >
+
+              <option value="">
+                Select Category
+              </option>
+
+              <option value="Food">
+                Food
+              </option>
+
+              <option value="Transport">
+                Transport
+              </option>
+
+              <option value="Shopping">
+                Shopping
+              </option>
+
+              <option value="Bills">
+                Bills
+              </option>
+
+              <option value="Entertainment">
+                Entertainment
+              </option>
+
+              <option value="Health">
+                Health
+              </option>
+
+              <option value="Education">
+                Education
+              </option>
+
+              <option value="Travel">
+                Travel
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
+            </select>
 
           </div>
 
+          <div>
 
-          {/* Amount */}
-
-          <div className="form-group">
-
-            <label>
+            <label htmlFor="amount">
               Budget Amount
             </label>
 
             <input
+              id="amount"
               type="number"
               name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              placeholder="Enter amount"
-              min="1"
+              placeholder="Enter budget amount"
+              min="0.01"
+              max="100000000"
+              step="0.01"
+              value={
+                formData.amount
+              }
+              onChange={
+                handleChange
+              }
               required
             />
 
           </div>
 
+          <div>
 
-          {/* Month */}
-
-          <div className="form-group">
-
-            <label>
+            <label htmlFor="month">
               Month
             </label>
 
             <select
+              id="month"
               name="month"
-              value={formData.month}
-              onChange={handleChange}
+              value={
+                formData.month
+              }
+              onChange={
+                handleChange
+              }
+              required
             >
 
               <option value="1">
@@ -540,55 +673,53 @@ function Budget() {
 
           </div>
 
+          <div>
 
-          {/* Year */}
-
-          <div className="form-group">
-
-            <label>
+            <label htmlFor="year">
               Year
             </label>
 
             <input
+              id="year"
               type="number"
               name="year"
-              value={formData.year}
-              onChange={handleChange}
-              min="2020"
+              min="2000"
+              max="2100"
+              step="1"
+              value={
+                formData.year
+              }
+              onChange={
+                handleChange
+              }
               required
             />
 
           </div>
 
-
-          {/* Form Actions */}
-
-          <div className="budget-form-actions">
+          <div className="form-actions">
 
             <button
               type="submit"
-              className="primary-button"
+              disabled={submitting}
             >
-
-              {editingId
+              {submitting
+                ? "Saving..."
+                : editingId
                 ? "Update Budget"
                 : "Create Budget"}
-
             </button>
 
-
             {editingId && (
-
               <button
                 type="button"
-                className="secondary-button"
-                onClick={resetForm}
+                onClick={
+                  handleCancelEdit
+                }
+                disabled={submitting}
               >
-
                 Cancel
-
               </button>
-
             )}
 
           </div>
@@ -596,63 +727,6 @@ function Budget() {
         </form>
 
       </div>
-
-
-      {/* ======================================
-          SMART INSIGHTS
-      ====================================== */}
-
-      {analytics?.budgetInsights?.length > 0 && (
-
-        <div className="budget-insights">
-
-          <div className="section-heading">
-
-            <h2>
-              Smart Budget Insights
-            </h2>
-
-            <p>
-              Automatically generated from your
-              spending activity.
-            </p>
-
-          </div>
-
-
-          <div className="insight-grid">
-
-            {analytics.budgetInsights.map(
-              (insight, index) => (
-
-                <div
-                  className="insight-card"
-                  key={index}
-                >
-
-                  <span className="insight-icon">
-                    💡
-                  </span>
-
-                  <p>
-                    {insight}
-                  </p>
-
-                </div>
-
-              )
-            )}
-
-          </div>
-
-        </div>
-
-      )}
-
-
-      {/* ======================================
-          BUDGET LIST
-      ====================================== */}
 
       <div className="budget-list">
 
@@ -663,22 +737,18 @@ function Budget() {
           </h2>
 
           <p>
-            Monitor your spending against
-            your planned limits.
+            Monitor your spending,
+            projected expenses and
+            budget recommendations.
           </p>
 
         </div>
 
-
-        {/* ====================================
-            EMPTY STATE
-        ==================================== */}
-
         {budgets.length === 0 ? (
 
           <EmptyState
-            title="No budgets created"
-            message="Create your first monthly budget to start monitoring your spending and receive smart budget recommendations."
+            title="No budgets yet"
+            message="Create your first budget to start controlling your spending."
             actionText="Create Your First Budget"
             onAction={() => {
               window.scrollTo({
@@ -690,458 +760,144 @@ function Budget() {
 
         ) : (
 
-          /* ==================================
-             BUDGET GRID
-          ================================== */
+          <div className="budget-items">
 
-          <div className="budget-grid">
+            {budgets.map(
+              (budget) => {
+                const key =
+                  getBudgetKey(
+                    budget.category,
+                    budget.month,
+                    budget.year
+                  );
 
-            {budgets.map((budget) => {
+                const actual =
+                  Number(
+                    budgetActual[
+                      key
+                    ] || 0
+                  );
 
-              // =================================
-              // BUDGET KEY
-              // =================================
+                const remaining =
+                  Number(
+                    budgetRemaining[
+                      key
+                    ] ??
+                      Number(
+                        budget.amount
+                      ) -
+                        actual
+                  );
 
-              const key =
-                getBudgetKey(budget);
+                const usage =
+                  Number(
+                    budgetUsage[
+                      key
+                    ] ||
+                      0
+                  );
 
+                const overspending =
+                  Number(
+                    budgetOverspending[
+                      key
+                    ] ||
+                      0
+                  );
 
-              // =================================
-              // ANALYTICS
-              // =================================
+                const pace =
+                  Number(
+                    budgetPace[
+                      key
+                    ] ||
+                      0
+                  );
 
-              const actual =
-                analytics?.budgetActual?.[key] ||
-                0;
+                const projected =
+                  Number(
+                    budgetProjected[
+                      key
+                    ] ||
+                      actual
+                  );
 
+                const projectedOverspending =
+                  Number(
+                    budgetProjectedOverspending[
+                      key
+                    ] ||
+                      0
+                  );
 
-              const remaining =
-                analytics?.budgetRemaining?.[key] ??
-                budget.amount;
+                const recommendation =
+                  budgetRecommendations[
+                    key
+                  ] ||
+                  getRecommendation(
+                    budget,
+                    actual,
+                    projectedOverspending,
+                    pace
+                  );
 
+                const status =
+                  getBudgetStatus(
+                    usage
+                  );
 
-              const usage =
-                analytics?.budgetUsage?.[key] ||
-                0;
+                const paceStatus =
+                  getPaceStatus(
+                    pace
+                  );
 
-
-              const overspending =
-                analytics?.budgetOverspending?.[key] ||
-                0;
-
-
-              const pace =
-                analytics?.budgetPace?.[key] ||
-                0;
-
-
-              const projected =
-                analytics?.budgetProjected?.[key] ||
-                0;
-
-
-              const projectedOverspending =
-                analytics
-                  ?.budgetProjectedOverspending?.[key] ||
-                0;
-
-
-              // =================================
-              // STATUS
-              // =================================
-
-              const status =
-                getBudgetStatus(
-                  usage,
-                  overspending
+                return (
+                  <BudgetCard
+                    key={
+                      budget._id
+                    }
+                    budget={
+                      budget
+                    }
+                    actual={
+                      actual
+                    }
+                    usage={
+                      usage
+                    }
+                    remaining={
+                      remaining
+                    }
+                    overspending={
+                      overspending
+                    }
+                    pace={
+                      pace
+                    }
+                    projected={
+                      projected
+                    }
+                    projectedOverspending={
+                      projectedOverspending
+                    }
+                    recommendation={
+                      recommendation
+                    }
+                    status={
+                      status
+                    }
+                    paceStatus={
+                      paceStatus
+                    }
+                    onEdit={
+                      handleEdit
+                    }
+                    onDelete={
+                      handleDelete
+                    }
+                  />
                 );
-
-
-              const paceStatus =
-                getPaceStatus(
-                  pace
-                );
-
-
-              // =================================
-              // SMART RECOMMENDATION
-              // =================================
-              //
-              // IMPORTANT:
-              // C++ now returns:
-              //
-              // Food|2026-09=Recommendation
-              //
-              // So we must use the budget key,
-              // NOT budgets.indexOf(budget).
-              // =================================
-
-              const recommendation =
-                analytics
-                  ?.budgetRecommendations?.[key];
-
-
-              return (
-
-                <div
-                  className={`budget-card ${status.className}`}
-                  key={budget._id}
-                >
-
-                  {/* =================================
-                      CARD HEADER
-                  ================================= */}
-
-                  <div className="budget-card-header">
-
-                    <div>
-
-                      <h3>
-                        {budget.category}
-                      </h3>
-
-                      <span>
-                        {budget.month}/
-                        {budget.year}
-                      </span>
-
-                    </div>
-
-
-                    <span
-                      className={`budget-status ${status.className}`}
-                    >
-
-                      {status.label}
-
-                    </span>
-
-                  </div>
-
-
-                  {/* =================================
-                      AMOUNTS
-                  ================================= */}
-
-                  <div className="budget-amounts">
-
-                    <div>
-
-                      <span>
-                        Budget
-                      </span>
-
-                      <strong>
-                        ₹
-                        {Number(
-                          budget.amount
-                        ).toLocaleString("en-IN")}
-                      </strong>
-
-                    </div>
-
-
-                    <div>
-
-                      <span>
-                        Spent
-                      </span>
-
-                      <strong>
-                        ₹
-                        {Number(
-                          actual
-                        ).toLocaleString("en-IN")}
-                      </strong>
-
-                    </div>
-
-
-                    <div>
-
-                      <span>
-                        Remaining
-                      </span>
-
-                      <strong
-                        className={
-                          remaining < 0
-                            ? "negative"
-                            : ""
-                        }
-                      >
-
-                        ₹
-                        {Number(
-                          remaining
-                        ).toLocaleString("en-IN")}
-
-                      </strong>
-
-                    </div>
-
-                  </div>
-
-
-                  {/* =================================
-                      PROGRESS
-                  ================================= */}
-
-                  <div className="budget-progress">
-
-                    <div className="budget-progress-info">
-
-                      <span>
-                        Budget Usage
-                      </span>
-
-                      <strong>
-                        {Number(
-                          usage
-                        ).toFixed(1)}
-                        %
-                      </strong>
-
-                    </div>
-
-
-                    <div className="budget-progress-track">
-
-                      <div
-                        className={`budget-progress-bar ${status.className}`}
-                        style={{
-                          width: `${Math.min(
-                            Math.max(
-                              usage,
-                              0
-                            ),
-                            100
-                          )}%`,
-                        }}
-                      />
-
-                    </div>
-
-                  </div>
-
-
-                  {/* =================================
-                      SPENDING PACE
-                  ================================= */}
-
-                  <div className="budget-intelligence">
-
-                    <div className="intelligence-card">
-
-                      <div className="intelligence-title">
-
-                        <span>
-                          📊 Spending Pace
-                        </span>
-
-                        <span
-                          className={`pace-badge ${paceStatus.className}`}
-                        >
-
-                          {paceStatus.label}
-
-                        </span>
-
-                      </div>
-
-
-                      <strong>
-                        {Number(
-                          pace
-                        ).toFixed(1)}
-                        %
-                      </strong>
-
-
-                      <p>
-                        Compared with the expected
-                        spending pace for this month.
-                      </p>
-
-                    </div>
-
-
-                    {/* =================================
-                        PROJECTED SPENDING
-                    ================================= */}
-
-                    <div className="intelligence-card">
-
-                      <div className="intelligence-title">
-
-                        <span>
-                          🔮 Projected Spending
-                        </span>
-
-                      </div>
-
-
-                      <strong>
-                        ₹
-                        {Number(
-                          projected
-                        ).toLocaleString(
-                          "en-IN",
-                          {
-                            maximumFractionDigits: 0,
-                          }
-                        )}
-                      </strong>
-
-
-                      <p>
-                        Estimated spending by the
-                        end of the month.
-                      </p>
-
-                    </div>
-
-
-                    {/* =================================
-                        PROJECTED RISK
-                    ================================= */}
-
-                    <div className="intelligence-card">
-
-                      <div className="intelligence-title">
-
-                        <span>
-                          ⚠️ Projected Risk
-                        </span>
-
-                      </div>
-
-
-                      <strong
-                        className={
-                          projectedOverspending > 0
-                            ? "negative"
-                            : "positive"
-                        }
-                      >
-
-                        {projectedOverspending > 0
-                          ? `₹${Number(
-                              projectedOverspending
-                            ).toLocaleString(
-                              "en-IN",
-                              {
-                                maximumFractionDigits: 0,
-                              }
-                            )} over`
-                          : "No overspending"}
-
-                      </strong>
-
-
-                      <p>
-
-                        {projectedOverspending > 0
-                          ? "Current spending pace may exceed your budget."
-                          : "Your current pace is projected to stay within budget."}
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-
-                  {/* =================================
-                      RECOMMENDATION
-                  ================================= */}
-
-                  {recommendation && (
-
-                    <div className="budget-recommendation">
-
-                      <div className="recommendation-icon">
-                        💡
-                      </div>
-
-
-                      <div>
-
-                        <h4>
-                          Smart Recommendation
-                        </h4>
-
-                        <p>
-                          {recommendation}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  )}
-
-
-                  {/* =================================
-                      OVERSPENDING
-                  ================================= */}
-
-                  {overspending > 0 && (
-
-                    <div className="overspending-message">
-
-                      ⚠️ You have exceeded this
-                      budget by ₹
-                      {Number(
-                        overspending
-                      ).toLocaleString(
-                        "en-IN"
-                      )}.
-
-                    </div>
-
-                  )}
-
-
-                  {/* =================================
-                      ACTIONS
-                  ================================= */}
-
-                  <div className="budget-actions">
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleEdit(budget)
-                      }
-                      className="edit-button"
-                    >
-
-                      Edit
-
-                    </button>
-
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDelete(
-                          budget._id
-                        )
-                      }
-                      className="delete-button"
-                    >
-
-                      Delete
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-              );
-            })}
+              }
+            )}
 
           </div>
 
@@ -1151,7 +907,6 @@ function Budget() {
 
     </div>
   );
-}
+};
 
 export default Budget;
-

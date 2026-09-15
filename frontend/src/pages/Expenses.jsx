@@ -1,8 +1,9 @@
-
 import { useEffect, useState } from "react";
 
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import ExpenseCard from "../components/ExpenseCard";
 
 import {
   addExpense,
@@ -14,10 +15,6 @@ import {
 import "../styles/expenses.css";
 
 const Expenses = () => {
-  // =========================================
-  // INITIAL FORM
-  // =========================================
-
   const initialForm = {
     category: "",
     amount: "",
@@ -26,25 +23,26 @@ const Expenses = () => {
     paymentMethod: "Cash",
   };
 
-  // =========================================
-  // STATES
-  // =========================================
+  const [formData, setFormData] =
+    useState(initialForm);
 
-  const [formData, setFormData] = useState(initialForm);
+  const [expenses, setExpenses] =
+    useState([]);
 
-  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] =
+    useState(false);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [editingId, setEditingId] = useState(null);
+  const [success, setSuccess] =
+    useState("");
 
-  // =========================================
-  // LOAD EXPENSES
-  // =========================================
+  const [editingId, setEditingId] =
+    useState(null);
 
   const loadExpenses = async () => {
     try {
@@ -53,9 +51,14 @@ const Expenses = () => {
 
       const data = await getExpenses();
 
-      setExpenses(data.expenses || []);
+      setExpenses(
+        data.expenses || []
+      );
     } catch (error) {
-      console.error("Expenses Error:", error);
+      console.error(
+        "Expenses Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -66,28 +69,73 @@ const Expenses = () => {
     }
   };
 
-  // =========================================
-  // LOAD DATA ON PAGE OPEN
-  // =========================================
-
   useEffect(() => {
     loadExpenses();
   }, []);
 
-  // =========================================
-  // HANDLE INPUT CHANGES
-  // =========================================
-
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+
+    setError("");
+    setSuccess("");
   };
 
-  // =========================================
-  // ADD / UPDATE EXPENSE
-  // =========================================
+  const validateForm = () => {
+    const amount =
+      Number(formData.amount);
+
+    if (!formData.category) {
+      return "Please select an expense category.";
+    }
+
+    if (
+      formData.amount === "" ||
+      formData.amount === null
+    ) {
+      return "Amount is required.";
+    }
+
+    if (!Number.isFinite(amount)) {
+      return "Please enter a valid amount.";
+    }
+
+    if (amount <= 0) {
+      return "Amount must be greater than 0.";
+    }
+
+    if (amount > 100000000) {
+      return "Amount is too large.";
+    }
+
+    if (
+      formData.description.length > 200
+    ) {
+      return "Description cannot exceed 200 characters.";
+    }
+
+    if (
+      formData.date &&
+      Number.isNaN(
+        new Date(
+          formData.date
+        ).getTime()
+      )
+    ) {
+      return "Please enter a valid date.";
+    }
+
+    return "";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -95,110 +143,120 @@ const Expenses = () => {
     setError("");
     setSuccess("");
 
-    // Validation
+    const validationError =
+      validateForm();
 
-    if (!formData.category || !formData.amount) {
-      setError("Category and amount are required.");
-      return;
-    }
-
-    if (Number(formData.amount) <= 0) {
-      setError("Amount must be greater than 0.");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     try {
       setSubmitting(true);
 
-      // UPDATE
+      const data = {
+        category:
+          formData.category,
+
+        amount:
+          Number(formData.amount),
+
+        description:
+          formData.description.trim(),
+
+        date:
+          formData.date,
+
+        paymentMethod:
+          formData.paymentMethod,
+      };
 
       if (editingId) {
-        await updateExpense(editingId, {
-          ...formData,
-          amount: Number(formData.amount),
-        });
+        await updateExpense(
+          editingId,
+          data
+        );
 
-        setSuccess("Expense updated successfully.");
+        setSuccess(
+          "Expense updated successfully."
+        );
+      } else {
+        await addExpense(data);
+
+        setSuccess(
+          "Expense added successfully."
+        );
       }
-
-      // ADD
-
-      else {
-        await addExpense({
-          ...formData,
-          amount: Number(formData.amount),
-        });
-
-        setSuccess("Expense added successfully.");
-      }
-
-      // Reset form
 
       setFormData(initialForm);
-
       setEditingId(null);
 
-      // Reload expenses
-
       await loadExpenses();
-
     } catch (error) {
-      console.error("Save Expense Error:", error);
+      console.error(
+        "Save Expense Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
-          "Something went wrong."
+          "Something went wrong while saving the expense."
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // =========================================
-  // EDIT EXPENSE
-  // =========================================
-
   const handleEdit = (expense) => {
-    setEditingId(expense._id);
+    setEditingId(
+      expense._id
+    );
 
     setFormData({
-      category: expense.category,
-      amount: expense.amount,
-      description: expense.description || "",
+      category:
+        expense.category || "",
+
+      amount:
+        expense.amount || "",
+
+      description:
+        expense.description || "",
 
       date: expense.date
-        ? expense.date.substring(0, 10)
+        ? expense.date.substring(
+            0,
+            10
+          )
         : "",
 
       paymentMethod:
-        expense.paymentMethod || "Cash",
+        expense.paymentMethod ||
+        "Cash",
     });
 
     setError("");
     setSuccess("");
-  };
 
-  // =========================================
-  // CANCEL EDIT
-  // =========================================
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-
     setFormData(initialForm);
-
     setError("");
     setSuccess("");
   };
 
-  // =========================================
-  // DELETE EXPENSE
-  // =========================================
-
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this expense?"
-    );
+  const handleDelete = async (
+    id
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this expense?"
+      );
 
     if (!confirmed) {
       return;
@@ -210,12 +268,16 @@ const Expenses = () => {
 
       await deleteExpense(id);
 
-      setSuccess("Expense deleted successfully.");
+      setSuccess(
+        "Expense deleted successfully."
+      );
 
       await loadExpenses();
-
     } catch (error) {
-      console.error("Delete Expense Error:", error);
+      console.error(
+        "Delete Expense Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -224,39 +286,51 @@ const Expenses = () => {
     }
   };
 
-  // =========================================
-  // LOADING STATE
-  // =========================================
-
   if (loading) {
     return (
       <div className="expenses-page">
-        <Loading message="Loading expenses..." />
+        <Loading
+          message="Loading expenses..."
+        />
       </div>
     );
   }
 
-  // =========================================
-  // MAIN UI
-  // =========================================
+  if (
+    error &&
+    expenses.length === 0
+  ) {
+    return (
+      <div className="expenses-page">
+        <ErrorState
+          title="Unable to load expenses"
+          message={error}
+          actionText="Try Again"
+          onAction={loadExpenses}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="expenses-page">
 
-      {/* =====================================
-          HEADER
-      ====================================== */}
+      <div className="page-header">
 
-      <h1>Expenses</h1>
+        <div>
 
-      <p>
-        Track and manage your daily expenses.
-      </p>
+          <h1>
+            Expenses
+          </h1>
 
+          <p>
+            Track and manage your
+            daily expenses.
+          </p>
 
-      {/* =====================================
-          MESSAGES
-      ====================================== */}
+        </div>
+
+      </div>
 
       {error && (
         <div className="error-message">
@@ -270,11 +344,6 @@ const Expenses = () => {
         </div>
       )}
 
-
-      {/* =====================================
-          EXPENSE FORM
-      ====================================== */}
-
       <div className="expense-form-container">
 
         <h2>
@@ -283,21 +352,27 @@ const Expenses = () => {
             : "Add Expense"}
         </h2>
 
-
-        <form onSubmit={handleSubmit}>
-
-          {/* Category */}
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+        >
 
           <div>
 
-            <label>
+            <label htmlFor="category">
               Category
             </label>
 
             <select
+              id="category"
               name="category"
-              value={formData.category}
-              onChange={handleChange}
+              value={
+                formData.category
+              }
+              onChange={
+                handleChange
+              }
+              required
             >
 
               <option value="">
@@ -344,76 +419,88 @@ const Expenses = () => {
 
           </div>
 
-
-          {/* Amount */}
-
           <div>
 
-            <label>
+            <label htmlFor="amount">
               Amount
             </label>
 
             <input
+              id="amount"
               type="number"
               name="amount"
               placeholder="Enter amount"
-              min="1"
-              value={formData.amount}
-              onChange={handleChange}
+              min="0.01"
+              max="100000000"
+              step="0.01"
+              value={
+                formData.amount
+              }
+              onChange={
+                handleChange
+              }
+              required
             />
 
           </div>
 
-
-          {/* Description */}
-
           <div>
 
-            <label>
+            <label htmlFor="description">
               Description
             </label>
 
             <input
+              id="description"
               type="text"
               name="description"
               placeholder="e.g. Lunch with friends"
-              value={formData.description}
-              onChange={handleChange}
+              maxLength="200"
+              value={
+                formData.description
+              }
+              onChange={
+                handleChange
+              }
             />
 
           </div>
 
-
-          {/* Date */}
-
           <div>
 
-            <label>
+            <label htmlFor="date">
               Date
             </label>
 
             <input
+              id="date"
               type="date"
               name="date"
-              value={formData.date}
-              onChange={handleChange}
+              value={
+                formData.date
+              }
+              onChange={
+                handleChange
+              }
             />
 
           </div>
 
-
-          {/* Payment Method */}
-
           <div>
 
-            <label>
+            <label htmlFor="paymentMethod">
               Payment Method
             </label>
 
             <select
+              id="paymentMethod"
               name="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={handleChange}
+              value={
+                formData.paymentMethod
+              }
+              onChange={
+                handleChange
+              }
             >
 
               <option value="Cash">
@@ -444,51 +531,42 @@ const Expenses = () => {
 
           </div>
 
+          <div className="form-actions">
 
-          {/* Submit */}
-
-          <button
-            type="submit"
-            disabled={submitting}
-          >
-
-            {submitting
-              ? "Saving..."
-              : editingId
-              ? "Update Expense"
-              : "Add Expense"}
-
-          </button>
-
-
-          {/* Cancel Edit */}
-
-          {editingId && (
             <button
-              type="button"
-              onClick={handleCancelEdit}
+              type="submit"
+              disabled={submitting}
             >
-              Cancel
+              {submitting
+                ? "Saving..."
+                : editingId
+                ? "Update Expense"
+                : "Add Expense"}
             </button>
-          )}
+
+            {editingId && (
+              <button
+                type="button"
+                onClick={
+                  handleCancelEdit
+                }
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+            )}
+
+          </div>
 
         </form>
 
       </div>
-
-
-      {/* =====================================
-          EXPENSE LIST
-      ====================================== */}
 
       <div className="expense-list">
 
         <h2>
           Your Expenses
         </h2>
-
-
-        {/* EMPTY STATE */}
 
         {expenses.length === 0 ? (
 
@@ -506,80 +584,28 @@ const Expenses = () => {
 
         ) : (
 
-          /* EXPENSES */
+          <div className="expense-items">
 
-          expenses.map((expense) => (
-
-            <div
-              className="expense-card"
-              key={expense._id}
-            >
-
-              {/* Expense Information */}
-
-              <div>
-
-                <h3>
-                  {expense.category}
-                </h3>
-
-                <p>
-                  {expense.description ||
-                    "No description"}
-                </p>
-
-                <small>
-                  {new Date(
-                    expense.date
-                  ).toLocaleDateString()}
-                </small>
-
-                <small>
-                  {" "}
-                  • {expense.paymentMethod}
-                </small>
-
-              </div>
-
-
-              {/* Amount + Actions */}
-
-              <div>
-
-                <h3>
-                  ₹
-                  {Number(
-                    expense.amount
-                  ).toLocaleString("en-IN")}
-                </h3>
-
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleEdit(expense)
+            {expenses.map(
+              (expense) => (
+                <ExpenseCard
+                  key={
+                    expense._id
                   }
-                >
-                  Edit
-                </button>
-
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleDelete(
-                      expense._id
-                    )
+                  expense={
+                    expense
                   }
-                >
-                  Delete
-                </button>
+                  onEdit={
+                    handleEdit
+                  }
+                  onDelete={
+                    handleDelete
+                  }
+                />
+              )
+            )}
 
-              </div>
-
-            </div>
-
-          ))
+          </div>
 
         )}
 
@@ -590,4 +616,3 @@ const Expenses = () => {
 };
 
 export default Expenses;
-

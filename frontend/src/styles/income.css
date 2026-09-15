@@ -1,11 +1,13 @@
 /* ========================================
-   EXPENSES PAGE
+   INCOME PAGE
    ======================================== */
 
-.expenses-page {
+.income-page {
   width: 100%;
   max-width: 1200px;
+
   margin: 0 auto;
+
   padding: 32px 24px 60px;
 
   box-sizing: border-box;
@@ -16,7 +18,7 @@
    PAGE HEADER
    ======================================== */
 
-.expenses-page .page-header {
+.income-page .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -26,7 +28,7 @@
   margin-bottom: 28px;
 }
 
-.expenses-page .page-header h1 {
+.income-page .page-header h1 {
   margin: 0 0 8px;
 
   color: #222;
@@ -35,10 +37,11 @@
   font-weight: 700;
 
   line-height: 1.2;
+
   letter-spacing: -0.5px;
 }
 
-.expenses-page .page-header p {
+.income-page .page-header p {
   max-width: 600px;
 
   margin: 0;
@@ -46,6 +49,7 @@
   color: #777;
 
   font-size: 14px;
+
   line-height: 1.6;
 }
 
@@ -54,11 +58,12 @@
    ERROR / SUCCESS MESSAGES
    ======================================== */
 
-.expenses-page .error-message,
-.expenses-page .success-message {
+.income-page .error-message,
+.income-page .success-message {
   width: 100%;
 
   margin-bottom: 20px;
+
   padding: 12px 15px;
 
   border-radius: 8px;
@@ -66,35 +71,40 @@
   box-sizing: border-box;
 
   font-size: 13px;
+
   line-height: 1.5;
 }
 
-.expenses-page .error-message {
+.income-page .error-message {
   border: 1px solid #f0caca;
 
   background: #fff5f5;
+
   color: #b11226;
 }
 
-.expenses-page .success-message {
+.income-page .success-message {
   border: 1px solid #c9e8d4;
 
   background: #f1faf4;
+
   color: #16803c;
 }
 
 
 /* ========================================
-   EXPENSE FORM CONTAINER
+   INCOME FORM
    ======================================== */
 
-.expense-form-container {
+.income-form-container {
   width: 100%;
 
   margin-bottom: 32px;
+
   padding: 26px;
 
   border: 1px solid #e8e8e8;
+
   border-radius: 14px;
 
   background: #ffffff;
@@ -106,21 +116,22 @@
   box-sizing: border-box;
 }
 
-.expense-form-container h2 {
+.income-form-container h2 {
   margin: 0 0 22px;
 
   color: #222;
 
   font-size: 20px;
+
   font-weight: 650;
 }
 
 
 /* ========================================
-   FORM
+   FORM GRID
    ======================================== */
 
-.expense-form-container form {
+.income-form-container form {
   display: grid;
 
   grid-template-columns:
@@ -129,16 +140,16 @@
   gap: 20px;
 }
 
-
-/* ========================================
-   FORM FIELD
-   ======================================== */
-
-.expense-form-container form > div {
+.income-form-container form > div {
   min-width: 0;
 }
 
-.expense-form-container label {
+
+/* ========================================
+   LABELS
+   ======================================== */
+
+.income-form-container label {
   display: block;
 
   margin-bottom: 7px;
@@ -146,6 +157,7 @@
   color: #444;
 
   font-size: 13px;
+
   font-weight: 600;
 }
 
@@ -154,8 +166,8 @@
    INPUTS / SELECTS
    ======================================== */
 
-.expense-form-container input,
-.expense-form-container select {
+.income-form-container input,
+.income-form-container select {
   width: 100%;
 
   min-height: 44px;
@@ -163,14 +175,17 @@
   padding: 10px 12px;
 
   border: 1px solid #dcdcdc;
+
   border-radius: 8px;
 
   outline: none;
 
   background: #ffffff;
+
   color: #333;
 
   font-family: inherit;
+
   font-size: 14px;
 
   box-sizing: border-box;
@@ -181,22 +196,22 @@
     background 0.2s ease;
 }
 
-.expense-form-container input::placeholder {
+.income-form-container input::placeholder {
   color: #aaa;
 }
 
-.expense-form-container input:hover,
-.expense-form-container select:hover {
+.income-form-container input:hover,
+.income-form-container select:hover {
   border-color: #c5c5c5;
 }
 
-.expense-form-container input:focus,
-.expense-form-container select:focus {
-  border-color: #b11226;
+.income-form-container input:focus,
+.income-form-container select:focus {
+  border-color: #16803c;
 
   box-shadow:
     0 0 0 3px
-    rgba(177, 18, 38, 0.08);
+    rgba(22, 128, 60, 0.09);
 }
 
 
@@ -204,12 +219,8 @@
    DATE INPUT
    ======================================== */
 
-.expense-form-container input[type="date"] {
+.income-form-container input[type="date"] {
   color-scheme: light;
-}
-
-.expense-form-container input[type="date"]:invalid {
-  color: #777;
 }
 
 
@@ -217,10 +228,11 @@
    FORM ACTIONS
    ======================================== */
 
-.expense-form-container .form-actions {
+.income-form-container .form-actions {
   grid-column: 1 / -1;
 
   display: flex;
+
   align-items: center;
 
   gap: 10px;
@@ -228,7 +240,7 @@
   margin-top: 2px;
 }
 
-.expense-form-container .form-actions button {
+.income-form-container .form-actions button {
   min-height: 42px;
 
   padding: 10px 20px;
@@ -238,6 +250,7 @@
   font-family: inherit;
 
   font-size: 13px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -251,49 +264,59 @@
 }
 
 
-/* Primary button */
+/* ========================================
+   ADD / UPDATE BUTTON
+   ======================================== */
 
-.expense-form-container .form-actions button[type="submit"] {
-  border: 1px solid #b11226;
+.income-form-container
+  .form-actions
+  button[type="submit"] {
+  border: 1px solid #16803c;
 
-  background: #b11226;
+  background: #16803c;
+
   color: #ffffff;
 }
 
-.expense-form-container
+.income-form-container
   .form-actions
   button[type="submit"]:hover:not(:disabled) {
-  border-color: #8f0e1d;
+  border-color: #116630;
 
-  background: #8f0e1d;
+  background: #116630;
 
   transform: translateY(-1px);
 }
 
 
-/* Cancel button */
+/* ========================================
+   CANCEL BUTTON
+   ======================================== */
 
-.expense-form-container
+.income-form-container
   .form-actions
   button[type="button"] {
   border: 1px solid #d5d5d5;
 
   background: #ffffff;
+
   color: #555;
 }
 
-.expense-form-container
+.income-form-container
   .form-actions
   button[type="button"]:hover:not(:disabled) {
-  border-color: #b11226;
+  border-color: #16803c;
 
-  color: #b11226;
+  color: #16803c;
 }
 
 
-/* Disabled */
+/* ========================================
+   DISABLED BUTTON
+   ======================================== */
 
-.expense-form-container
+.income-form-container
   .form-actions
   button:disabled {
   cursor: not-allowed;
@@ -305,28 +328,29 @@
 
 
 /* ========================================
-   EXPENSE LIST
+   INCOME LIST
    ======================================== */
 
-.expense-list {
+.income-list {
   width: 100%;
 }
 
-.expense-list > h2 {
+.income-list > h2 {
   margin: 0 0 18px;
 
   color: #222;
 
   font-size: 20px;
+
   font-weight: 650;
 }
 
 
 /* ========================================
-   EXPENSE GRID
+   INCOME GRID
    ======================================== */
 
-.expense-items {
+.income-items {
   display: grid;
 
   grid-template-columns:
@@ -339,16 +363,18 @@
 
 
 /* ========================================
-   EXPENSE CARD
+   INCOME CARD
    ======================================== */
 
-.expense-card {
+.income-card {
   width: 100%;
+
   min-width: 0;
 
   padding: 21px;
 
   border: 1px solid #e7e7e7;
+
   border-radius: 12px;
 
   background: #ffffff;
@@ -365,8 +391,8 @@
     border-color 0.2s ease;
 }
 
-.expense-card:hover {
-  border-color: #dddddd;
+.income-card:hover {
+  border-color: #dcdcdc;
 
   transform: translateY(-3px);
 
@@ -380,10 +406,11 @@
    CARD HEADER
    ======================================== */
 
-.expense-card-header {
+.income-card-header {
   display: flex;
 
   align-items: flex-start;
+
   justify-content: space-between;
 
   gap: 15px;
@@ -391,16 +418,17 @@
   margin-bottom: 18px;
 }
 
-.expense-card-header > div {
+.income-card-header > div {
   min-width: 0;
 }
 
-.expense-card-header h3 {
+.income-card-header h3 {
   margin: 0 0 5px;
 
   color: #222;
 
   font-size: 17px;
+
   font-weight: 650;
 
   line-height: 1.3;
@@ -408,7 +436,7 @@
   overflow-wrap: anywhere;
 }
 
-.expense-date {
+.income-date {
   display: block;
 
   color: #888;
@@ -416,12 +444,13 @@
   font-size: 12px;
 }
 
-.expense-amount {
+.income-amount {
   flex-shrink: 0;
 
-  color: #b11226;
+  color: #16803c;
 
   font-size: 18px;
+
   font-weight: 700;
 
   white-space: nowrap;
@@ -432,8 +461,9 @@
    CARD DETAILS
    ======================================== */
 
-.expense-card-details {
+.income-card-details {
   display: flex;
+
   flex-direction: column;
 
   gap: 10px;
@@ -443,8 +473,9 @@
   border-top: 1px solid #eeeeee;
 }
 
-.expense-card-details p {
+.income-card-details p {
   display: flex;
+
   flex-direction: column;
 
   gap: 3px;
@@ -454,15 +485,17 @@
   color: #555;
 
   font-size: 13px;
+
   line-height: 1.5;
 
   overflow-wrap: anywhere;
 }
 
-.expense-card-details p span {
+.income-card-details p span {
   color: #888;
 
   font-size: 10px;
+
   font-weight: 700;
 
   letter-spacing: 0.5px;
@@ -475,7 +508,7 @@
    CARD ACTIONS
    ======================================== */
 
-.expense-card-actions {
+.income-card-actions {
   display: grid;
 
   grid-template-columns:
@@ -484,13 +517,14 @@
   gap: 10px;
 
   margin-top: 18px;
+
   padding-top: 15px;
 
   border-top: 1px solid #eeeeee;
 }
 
-.expense-edit-button,
-.expense-delete-button {
+.income-edit-button,
+.income-delete-button {
   min-height: 38px;
 
   padding: 8px 12px;
@@ -500,6 +534,7 @@
   font-family: inherit;
 
   font-size: 13px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -511,32 +546,38 @@
 }
 
 
-/* Edit */
+/* ========================================
+   EDIT BUTTON
+   ======================================== */
 
-.expense-edit-button {
+.income-edit-button {
   border: 1px solid #d6d6d6;
 
   background: #ffffff;
+
   color: #444;
 }
 
-.expense-edit-button:hover {
-  border-color: #b11226;
+.income-edit-button:hover {
+  border-color: #16803c;
 
-  color: #b11226;
+  color: #16803c;
 }
 
 
-/* Delete */
+/* ========================================
+   DELETE BUTTON
+   ======================================== */
 
-.expense-delete-button {
+.income-delete-button {
   border: 1px solid #b11226;
 
   background: #ffffff;
+
   color: #b11226;
 }
 
-.expense-delete-button:hover {
+.income-delete-button:hover {
   background: #b11226;
 
   color: #ffffff;
@@ -547,12 +588,13 @@
    EMPTY STATE
    ======================================== */
 
-.expense-list .empty-state {
+.income-list .empty-state {
   margin-top: 5px;
 
   padding: 45px 20px;
 
   border: 1px dashed #dcdcdc;
+
   border-radius: 12px;
 
   background: #ffffff;
@@ -565,11 +607,11 @@
 
 @media (max-width: 1000px) {
 
-  .expenses-page {
+  .income-page {
     max-width: 100%;
   }
 
-  .expense-items {
+  .income-items {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
 
@@ -585,15 +627,15 @@
 
 @media (max-width: 800px) {
 
-  .expenses-page {
+  .income-page {
     padding: 28px 20px 50px;
   }
 
-  .expense-form-container {
+  .income-form-container {
     padding: 22px;
   }
 
-  .expense-items {
+  .income-items {
     grid-template-columns: 1fr;
   }
 
@@ -606,23 +648,23 @@
 
 @media (max-width: 650px) {
 
-  .expenses-page {
+  .income-page {
     padding: 22px 16px 40px;
   }
 
-  .expenses-page .page-header {
+  .income-page .page-header {
     margin-bottom: 22px;
   }
 
-  .expenses-page .page-header h1 {
+  .income-page .page-header h1 {
     font-size: 26px;
   }
 
-  .expenses-page .page-header p {
+  .income-page .page-header p {
     font-size: 13px;
   }
 
-  .expense-form-container {
+  .income-form-container {
     padding: 19px;
 
     margin-bottom: 25px;
@@ -630,19 +672,19 @@
     border-radius: 11px;
   }
 
-  .expense-form-container h2 {
-    font-size: 18px;
-
+  .income-form-container h2 {
     margin-bottom: 19px;
+
+    font-size: 18px;
   }
 
-  .expense-form-container form {
+  .income-form-container form {
     grid-template-columns: 1fr;
 
     gap: 16px;
   }
 
-  .expense-form-container .form-actions {
+  .income-form-container .form-actions {
     grid-column: auto;
 
     flex-direction: column;
@@ -652,13 +694,13 @@
     gap: 9px;
   }
 
-  .expense-form-container
+  .income-form-container
     .form-actions
     button {
     width: 100%;
   }
 
-  .expense-list > h2 {
+  .income-list > h2 {
     font-size: 19px;
   }
 
@@ -671,30 +713,31 @@
 
 @media (max-width: 500px) {
 
-  .expenses-page {
+  .income-page {
     padding-left: 13px;
+
     padding-right: 13px;
   }
 
-  .expense-form-container {
+  .income-form-container {
     padding: 17px;
   }
 
-  .expense-card {
+  .income-card {
     padding: 18px;
   }
 
-  .expense-card-header {
+  .income-card-header {
     flex-direction: column;
 
     gap: 8px;
   }
 
-  .expense-amount {
+  .income-amount {
     font-size: 17px;
   }
 
-  .expense-card-actions {
+  .income-card-actions {
     grid-template-columns: 1fr;
   }
 
@@ -707,62 +750,64 @@
 
 @media (max-width: 380px) {
 
-  .expenses-page {
+  .income-page {
     padding-left: 10px;
+
     padding-right: 10px;
   }
 
-  .expenses-page .page-header h1 {
+  .income-page .page-header h1 {
     font-size: 24px;
   }
 
-  .expense-form-container {
+  .income-form-container {
     padding: 15px;
   }
 
-  .expense-form-container input,
-  .expense-form-container select {
+  .income-form-container input,
+  .income-form-container select {
     min-height: 46px;
 
     font-size: 16px;
   }
 
-  .expense-card {
+  .income-card {
     padding: 16px;
   }
 
-  .expense-card-header h3 {
+  .income-card-header h3 {
     font-size: 16px;
   }
 
-  .expense-card-details p {
+  .income-card-details p {
     font-size: 12px;
-  }
-
-  .expense-card-actions {
-    gap: 8px;
   }
 
 }
 
 
 /* ========================================
-   VERY SMALL DEVICES
+   VERY SMALL DEVICES — 320px
    ======================================== */
 
 @media (max-width: 320px) {
 
-  .expenses-page {
+  .income-page {
     padding-left: 8px;
+
     padding-right: 8px;
   }
 
-  .expense-form-container {
+  .income-form-container {
     padding: 13px;
   }
 
-  .expense-card {
+  .income-card {
     padding: 14px;
+  }
+
+  .income-card-actions {
+    gap: 8px;
   }
 
 }

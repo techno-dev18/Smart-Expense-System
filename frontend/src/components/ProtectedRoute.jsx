@@ -1,21 +1,67 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+
+import Loading from "./Loading";
+
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
 
-  // Wait until authentication state is loaded
+function ProtectedRoute({
+  children,
+}) {
+
+  const {
+    user,
+    token,
+    loading,
+  } = useAuth();
+
+  const location =
+    useLocation();
+
+
+  // ==========================================
+  // AUTHENTICATION LOADING
+  // ==========================================
+
   if (loading) {
-    return <p>Loading...</p>;
+    return (
+      <Loading
+        message="Checking authentication..."
+      />
+    );
   }
 
-  // If user is not logged in, send them to login
-  if (!user) {
-    return <Navigate to="/login" replace />;
+
+  // ==========================================
+  // NOT AUTHENTICATED
+  // ==========================================
+
+  if (!token || !user) {
+
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: location,
+        }}
+      />
+    );
+
   }
 
-  // User is authenticated
-  return children;
-};
+
+  // ==========================================
+  // AUTHENTICATED
+  // ==========================================
+
+  if (children) {
+    return children;
+  }
+
+
+  return <Outlet />;
+}
+
 
 export default ProtectedRoute;
