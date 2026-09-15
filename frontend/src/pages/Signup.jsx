@@ -113,7 +113,7 @@ const Signup = () => {
             <input
               type="password"
               name="password"
-              placeholder="Minimum 6 characters"
+              placeholder="Minimum 8 characters"
               value={formData.password}
               onChange={handleChange}
             />
