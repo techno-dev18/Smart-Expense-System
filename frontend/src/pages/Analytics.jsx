@@ -21,6 +21,7 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 
 import "../styles/analytics.css";
+
 const CHART_COLORS = [
   "#2563eb",
   "#16a34a",
@@ -31,16 +32,24 @@ const CHART_COLORS = [
   "#db2777",
   "#65a30d",
 ];
+
 function Analytics() {
-  // ==========================================
-  // STATES
-  // ==========================================
-
   const [analytics, setAnalytics] = useState(null);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
+
+  // ==========================================
+  // FORMAT CURRENCY
+  // ==========================================
+
+  const formatCurrency = (amount) => {
+    return `₹${Number(amount || 0).toLocaleString(
+      "en-IN",
+      {
+        maximumFractionDigits: 2,
+      }
+    )}`;
+  };
 
   // ==========================================
   // LOAD ANALYTICS
@@ -53,13 +62,11 @@ function Analytics() {
 
       const response = await getAnalytics();
 
-      setAnalytics(
-        response.analytics || null
-      );
+      setAnalytics(response.analytics || null);
     } catch (err) {
       console.error(
         "Analytics loading error:",
-        err
+        err.response?.data || err.message
       );
 
       setError(
@@ -76,35 +83,21 @@ function Analytics() {
   // ==========================================
 
   useEffect(() => {
-  loadAnalytics();
-
-  const handleFocus = () => {
     loadAnalytics();
-  };
 
-  window.addEventListener(
-    "focus",
-    handleFocus
-  );
+    const handleFocus = () => {
+      loadAnalytics();
+    };
 
-  return () => {
-    window.removeEventListener(
-      "focus",
-      handleFocus
-    );
-  };
-}, []);
-  // ==========================================
-  // FORMAT CURRENCY
-  // ==========================================
+    window.addEventListener("focus", handleFocus);
 
-  const formatCurrency = (amount) => {
-    return `₹${Number(
-      amount || 0
-    ).toLocaleString("en-IN", {
-      maximumFractionDigits: 2,
-    })}`;
-  };
+    return () => {
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+    };
+  }, []);
 
   // ==========================================
   // LOADING STATE
@@ -113,9 +106,7 @@ function Analytics() {
   if (loading) {
     return (
       <div className="analytics-page">
-        <Loading
-          message="Loading analytics..."
-        />
+        <Loading message="Loading analytics..." />
       </div>
     );
   }
@@ -146,7 +137,7 @@ function Analytics() {
       <div className="analytics-page">
         <EmptyState
           title="No analytics available"
-          message="Add some income or expenses to generate your financial analytics."
+          message="Add income or expenses to generate analytics."
           actionText="Refresh Analytics"
           onAction={loadAnalytics}
         />
@@ -174,23 +165,26 @@ function Analytics() {
     Object.entries(categorySpending);
 
   const expenseEntries =
-    Object.entries(monthlyExpenses);
+    Object.entries(monthlyExpenses).sort(
+      ([monthA], [monthB]) =>
+        monthA.localeCompare(monthB)
+    );
 
   const incomeEntries =
-    Object.entries(monthlyIncome);
+    Object.entries(monthlyIncome).sort(
+      ([monthA], [monthB]) =>
+        monthA.localeCompare(monthB)
+    );
 
   // ==========================================
   // PIE CHART DATA
   // ==========================================
 
-const categoryChartData =
-  categoryEntries
-    .map(
-      ([category, amount]) => ({
-        name: category,
-        value: Number(amount),
-      })
-    )
+  const categoryChartData = categoryEntries
+    .map(([category, amount]) => ({
+      name: category,
+      value: Number(amount),
+    }))
     .filter(
       (item) =>
         item.name &&
@@ -202,8 +196,7 @@ const categoryChartData =
   // BAR CHART DATA
   // ==========================================
 
- const monthlyChartData =
-  Array.from(
+  const monthlyChartData = Array.from(
     new Set([
       ...Object.keys(monthlyExpenses),
       ...Object.keys(monthlyIncome),
@@ -212,18 +205,11 @@ const categoryChartData =
     .sort()
     .map((month) => ({
       month,
-
-      income: Number(
-        monthlyIncome[month] || 0
-      ),
-
+      income: Number(monthlyIncome[month] || 0),
       expenses: Number(
         monthlyExpenses[month] || 0
       ),
     }));
-  // ==========================================
-  // PAGE
-  // ==========================================
 
   return (
     <div className="analytics-page">
@@ -233,35 +219,25 @@ const categoryChartData =
       ====================================== */}
 
       <div className="analytics-header">
-
         <div>
-
-          <h1>
-            Financial Analytics
-          </h1>
+          <h1>Financial Analytics</h1>
 
           <p>
             Understand your income, expenses,
             spending patterns, and financial
             performance.
           </p>
-
         </div>
 
-
-     <button
-  type="button"
-  className="refresh-button"
-  onClick={loadAnalytics}
-  disabled={loading}
->
-  {loading
-    ? "Refreshing..."
-    : "↻ Refresh"}
-</button>
-
+        <button
+          type="button"
+          className="refresh-button"
+          onClick={loadAnalytics}
+          disabled={loading}
+        >
+          {loading ? "Refreshing..." : "↻ Refresh"}
+        </button>
       </div>
-
 
       {/* ======================================
           INLINE ERROR
@@ -273,54 +249,30 @@ const categoryChartData =
         </div>
       )}
 
-
       {/* ======================================
           SUMMARY CARDS
       ====================================== */}
 
       <div className="analytics-summary-grid">
 
-        {/* Total Income */}
-
         <div className="analytics-summary-card">
-
-          <span>
-            Total Income
-          </span>
+          <span>Total Income</span>
 
           <strong>
-            {formatCurrency(
-              analytics.totalIncome
-            )}
+            {formatCurrency(analytics.totalIncome)}
           </strong>
-
         </div>
 
-
-        {/* Total Expenses */}
-
         <div className="analytics-summary-card">
-
-          <span>
-            Total Expenses
-          </span>
+          <span>Total Expenses</span>
 
           <strong>
-            {formatCurrency(
-              analytics.totalExpenses
-            )}
+            {formatCurrency(analytics.totalExpenses)}
           </strong>
-
         </div>
 
-
-        {/* Balance */}
-
         <div className="analytics-summary-card">
-
-          <span>
-            Balance
-          </span>
+          <span>Balance</span>
 
           <strong
             className={
@@ -329,21 +281,12 @@ const categoryChartData =
                 : "positive"
             }
           >
-            {formatCurrency(
-              analytics.balance
-            )}
+            {formatCurrency(analytics.balance)}
           </strong>
-
         </div>
 
-
-        {/* Savings Rate */}
-
         <div className="analytics-summary-card">
-
-          <span>
-            Savings Rate
-          </span>
+          <span>Savings Rate</span>
 
           <strong>
             {Number(
@@ -351,48 +294,35 @@ const categoryChartData =
             ).toFixed(1)}
             %
           </strong>
-
         </div>
 
       </div>
-
 
       {/* ======================================
           SPENDING BY CATEGORY
       ====================================== */}
 
       <div className="analytics-section">
-
         <div className="section-heading">
-
-          <h2>
-            Spending by Category
-          </h2>
+          <h2>Spending by Category</h2>
 
           <p>
             See which categories consume
             the most of your money.
           </p>
-
         </div>
 
-
         {categoryEntries.length === 0 ? (
-
           <EmptyState
             title="No category data"
-            message="Your category spending will appear here after you add expenses."
+            message="Add expenses to view category spending."
           />
-
         ) : (
-
           <div className="analytics-category-list">
-
             {categoryEntries.map(
               ([category, amount]) => {
-
                 const percentage =
-                  analytics.totalExpenses > 0
+                  Number(analytics.totalExpenses) > 0
                     ? (Number(amount) /
                         Number(
                           analytics.totalExpenses
@@ -405,430 +335,265 @@ const categoryChartData =
                     className="analytics-category-row"
                     key={category}
                   >
-
                     <div className="analytics-category-info">
-
-                      <span>
-                        {category}
-                      </span>
+                      <span>{category}</span>
 
                       <strong>
-                        {formatCurrency(
-                          amount
-                        )}
+                        {formatCurrency(amount)}
                       </strong>
-
                     </div>
 
-
                     <div className="analytics-category-track">
-
                       <div
                         className="analytics-category-fill"
                         style={{
                           width: `${Math.min(
-                            Math.max(
-                              percentage,
-                              0
-                            ),
+                            Math.max(percentage, 0),
                             100
                           )}%`,
                         }}
                       />
-
                     </div>
 
-
                     <span className="analytics-category-percentage">
-
                       {percentage.toFixed(1)}%
-
                     </span>
-
                   </div>
                 );
               }
             )}
-
           </div>
-
         )}
-
       </div>
-
 
       {/* ======================================
           SPENDING PIE CHART
       ====================================== */}
+{/* Category Spending Chart */}
+<div className="chart-card">
+  <h2>Category Spending</h2>
 
-      <div className="analytics-section">
+  {categoryChartData.length === 0 ? (
+    <p className="no-data">No category spending data available.</p>
+  ) : (
+    <div className="chart-scroll">
+      <PieChart width={550} height={420}>
+        <Pie
+          data={categoryChartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={135}
+          innerRadius={60}
+          paddingAngle={2}
+          label={({ name, percent }) =>
+            percent >= 0.05
+              ? `${name} ${(percent * 100).toFixed(0)}%`
+              : ""
+          }
+          isAnimationActive={false}
+        >
+          {categoryChartData.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={CHART_COLORS[index % CHART_COLORS.length]}
+            />
+          ))}
+        </Pie>
 
-        <div className="section-heading">
+        <Tooltip
+          formatter={(value) => [
+            `₹${Number(value).toLocaleString("en-IN")}`,
+            "Amount",
+          ]}
+        />
 
-          <h2>
-            Spending Distribution
-          </h2>
-
-          <p>
-            Visual breakdown of your expenses
-            by category.
-          </p>
-
-        </div>
-
-
-        {categoryChartData.length === 0 ? (
-
-          <EmptyState
-            title="No spending data"
-            message="Add expenses to generate your spending distribution."
-          />
-
-        ) : (
-
-          <div className="chart-container pie-chart-container">
-
-            <ResponsiveContainer
-              width="100%"
-              height={420}
-            >
-
-              <PieChart>
-
-                <Pie
-                  data={categoryChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={135}
-                  innerRadius={60}
-                  paddingAngle={2}
-                 label={({
-  name,
-  percent,
-}) =>
-  percent >= 0.05
-    ? `${name} ${(
-        percent * 100
-      ).toFixed(0)}%`
-    : ""
-}
-                >
-
-                {categoryChartData.map(
-  (entry, index) => (
-    <Cell
-      key={`cell-${entry.name}`}
-      fill={
-        CHART_COLORS[
-          index % CHART_COLORS.length
-        ]
-      }
-    />
-  )
-)}
-
-                </Pie>
-
-
-                <Tooltip
-                  formatter={(value) =>
-                    formatCurrency(value)
-                  }
-                />
-
-
-                <Legend />
-
-              </PieChart>
-
-            </ResponsiveContainer>
-
-          </div>
-
-        )}
-
-      </div>
-
+        <Legend />
+      </PieChart>
+    </div>
+  )}
+</div>
+     
 
       {/* ======================================
           MONTHLY EXPENSES
       ====================================== */}
 
       <div className="analytics-section">
-
         <div className="section-heading">
-
-          <h2>
-            Monthly Expenses
-          </h2>
+          <h2>Monthly Expenses</h2>
 
           <p>
             Track how your expenses change
             over time.
           </p>
-
         </div>
 
-
         {expenseEntries.length === 0 ? (
-
           <EmptyState
             title="No monthly expense data"
-            message="Monthly expense information will appear after you add expenses."
+            message="Monthly expenses will appear here after you add expenses."
           />
-
         ) : (
-
           <div className="monthly-data-list">
-
             {expenseEntries.map(
               ([month, amount]) => (
-
                 <div
                   className="monthly-data-row"
                   key={month}
                 >
-
-                  <span>
-                    {month}
-                  </span>
+                  <span>{month}</span>
 
                   <strong>
                     {formatCurrency(amount)}
                   </strong>
-
                 </div>
-
               )
             )}
-
           </div>
-
         )}
-
       </div>
-
 
       {/* ======================================
           MONTHLY INCOME
       ====================================== */}
 
       <div className="analytics-section">
-
         <div className="section-heading">
-
-          <h2>
-            Monthly Income
-          </h2>
+          <h2>Monthly Income</h2>
 
           <p>
             Review your income across
             different months.
           </p>
-
         </div>
 
-
         {incomeEntries.length === 0 ? (
-
           <EmptyState
             title="No monthly income data"
-            message="Monthly income information will appear after you add income."
+            message="Monthly income will appear here after you add income."
           />
-
         ) : (
-
           <div className="monthly-data-list">
-
             {incomeEntries.map(
               ([month, amount]) => (
-
                 <div
                   className="monthly-data-row"
                   key={month}
                 >
-
-                  <span>
-                    {month}
-                  </span>
+                  <span>{month}</span>
 
                   <strong>
                     {formatCurrency(amount)}
                   </strong>
-
                 </div>
-
               )
             )}
-
           </div>
-
         )}
-
       </div>
-
 
       {/* ======================================
           MONTHLY INCOME VS EXPENSES
       ====================================== */}
 
-      <div className="analytics-section">
+      {/* Monthly Income and Expenses Chart */}
+<div className="chart-card">
+  <h2>Monthly Income Vs Expenses</h2>
 
-        <div className="section-heading">
+  {monthlyChartData.length === 0 ? (
+    <p className="no-data">No monthly data available.</p>
+  ) : (
+    <div className="chart-scroll">
+      <BarChart
+        width={700}
+        height={420}
+        data={monthlyChartData}
+        margin={{
+          top: 20,
+          right: 30,
+          left: 20,
+          bottom: 20,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
 
-          <h2>
-            Income vs Expenses
-          </h2>
+        <XAxis
+          dataKey="month"
+          tick={{ fontSize: 12 }}
+        />
 
-          <p>
-            Compare your monthly income and
-            spending.
-          </p>
+        <YAxis
+          tickFormatter={(value) =>
+            `₹${Number(value).toLocaleString("en-IN")}`
+          }
+        />
 
-        </div>
+        <Tooltip
+          formatter={(value) => [
+            `₹${Number(value).toLocaleString("en-IN")}`,
+          ]}
+        />
 
+        <Legend />
 
-        {monthlyChartData.length === 0 ? (
+        <Bar
+          dataKey="income"
+          name="Income"
+          fill="#16a34a"
+          radius={[5, 5, 0, 0]}
+          isAnimationActive={false}
+        />
 
-          <EmptyState
-            title="No monthly data"
-            message="Add income or expenses to generate the monthly comparison."
-          />
-
-        ) : (
-
-          <div className="chart-container">
-
-            <ResponsiveContainer
-              width="100%"
-              height={420}
-            >
-
-              <BarChart
-                data={monthlyChartData}
-                margin={{
-                  top: 20,
-                  right: 20,
-                  left: 10,
-                  bottom: 20,
-                }}
-              >
-
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                />
-
-                <XAxis
-                  dataKey="month"
-                />
-
-                <YAxis />
-
-                <Tooltip
-                  formatter={(value) =>
-                    formatCurrency(value)
-                  }
-                />
-
-                <Legend />
-
-                <Bar
-                  dataKey="income"
-                  name="Income"
-                  radius={[
-                    5,
-                    5,
-                    0,
-                    0,
-                  ]}
-                />
-
-                <Bar
-                  dataKey="expenses"
-                  name="Expenses"
-                  radius={[
-                    5,
-                    5,
-                    0,
-                    0,
-                  ]}
-                />
-
-              </BarChart>
-
-            </ResponsiveContainer>
-
-          </div>
-
-        )}
-
-      </div>
-
+        <Bar
+          dataKey="expenses"
+          name="Expenses"
+          fill="#dc2626"
+          radius={[5, 5, 0, 0]}
+          isAnimationActive={false}
+        />
+      </BarChart>
+    </div>
+  )}
+</div>
 
       {/* ======================================
           FINANCIAL INSIGHTS
       ====================================== */}
 
       <div className="analytics-section">
-
         <div className="section-heading">
-
-          <h2>
-            Financial Insights
-          </h2>
+          <h2>Financial Insights</h2>
 
           <p>
             Important information generated
             from your financial activity.
           </p>
-
         </div>
-
 
         <div className="analytics-insights-grid">
 
-          {/* Average Expense */}
-
           <div className="analytics-insight-card">
-
-            <span>
-              Average Expense
-            </span>
+            <span>Average Expense</span>
 
             <strong>
               {formatCurrency(
                 analytics.averageExpense
               )}
             </strong>
-
           </div>
 
-
-          {/* Top Category */}
-
           <div className="analytics-insight-card">
-
-            <span>
-              Top Spending Category
-            </span>
+            <span>Top Spending Category</span>
 
             <strong>
-              {analytics.topCategory ||
-                "None"}
+              {analytics.topCategory || "None"}
             </strong>
-
           </div>
 
-
-          {/* Balance */}
-
           <div className="analytics-insight-card">
-
-            <span>
-              Remaining Balance
-            </span>
+            <span>Remaining Balance</span>
 
             <strong
               className={
@@ -837,67 +602,43 @@ const categoryChartData =
                   : "positive"
               }
             >
-              {formatCurrency(
-                analytics.balance
-              )}
+              {formatCurrency(analytics.balance)}
             </strong>
-
           </div>
 
         </div>
-
       </div>
-
 
       {/* ======================================
           SMART BUDGET INSIGHTS
       ====================================== */}
 
       {budgetInsights.length > 0 && (
-
         <div className="analytics-section">
-
           <div className="section-heading">
-
-            <h2>
-              Smart Budget Insights
-            </h2>
+            <h2>Smart Budget Insights</h2>
 
             <p>
               Recommendations generated from
               your spending and budget data.
             </p>
-
           </div>
 
-
           <div className="analytics-insights-list">
-
             {budgetInsights.map(
               (insight, index) => (
-
                 <div
                   className="analytics-insight-item"
                   key={index}
                 >
+                  <span>💡</span>
 
-                  <span>
-                    💡
-                  </span>
-
-                  <p>
-                    {insight}
-                  </p>
-
+                  <p>{insight}</p>
                 </div>
-
               )
             )}
-
           </div>
-
         </div>
-
       )}
 
     </div>
