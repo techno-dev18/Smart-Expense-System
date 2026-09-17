@@ -262,6 +262,41 @@ function Analytics() {
       : financialHealthScore >= 40
       ? "Needs improvement"
       : "Focus on improving your finances";
+      // ==========================================
+// EXPENSE-TO-INCOME RATIO
+// ==========================================
+
+const expenseToIncomeRatio =
+  totalIncome > 0
+    ? (totalExpenses / totalIncome) * 100
+    : 0;
+
+const expenseRatioMessage =
+  expenseToIncomeRatio > 100
+    ? "Your expenses are higher than your income."
+    : expenseToIncomeRatio >= 80
+    ? "A large portion of your income is being spent."
+    : "Your expenses are within your income.";
+    // ==========================================
+// SAVINGS AMOUNT
+// ==========================================
+
+const savingsAmount = totalIncome - totalExpenses;
+
+const savingsAmountMessage =
+  savingsAmount > 0
+    ? "You are saving money."
+    : savingsAmount < 0
+    ? "Your expenses exceed your income."
+    : "Your income and expenses are equal.";
+    // ==========================================
+// MONTHLY SAVINGS
+// ==========================================
+
+const monthlySavingsData = monthlyChartData.map((item) => ({
+  month: item.month,
+  savings: item.income - item.expenses,
+}));
   return (
     <div className="analytics-page">
 
@@ -824,7 +859,51 @@ function Analytics() {
           </div>
         )}
       </div>
+{/* ======================================
+    MONTHLY SAVINGS
+====================================== */}
 
+<div className="analytics-section">
+
+  <div className="section-heading">
+    <h2>Monthly Savings</h2>
+
+    <p>
+      Track how much money you save each month.
+    </p>
+  </div>
+
+  {monthlySavingsData.length === 0 ? (
+    <EmptyState
+      title="No monthly savings data"
+      message="Add income or expenses to view monthly savings."
+    />
+  ) : (
+    <div className="monthly-data-list">
+
+      {monthlySavingsData.map(({ month, savings }) => (
+        <div
+          className="monthly-data-row"
+          key={month}
+        >
+          <span>{month}</span>
+
+          <strong
+            className={
+              savings < 0
+                ? "negative"
+                : "positive"
+            }
+          >
+            {formatCurrency(savings)}
+          </strong>
+        </div>
+      ))}
+
+    </div>
+  )}
+
+</div>
       {/* ======================================
           FINANCIAL INSIGHTS
       ====================================== */}
@@ -873,7 +952,34 @@ function Analytics() {
 
         </div>
       </div>
+<div className="analytics-insight-card">
+  <span>Expense-to-Income Ratio</span>
 
+  <strong>
+    {expenseToIncomeRatio.toFixed(1)}%
+  </strong>
+
+  <p>
+    {expenseRatioMessage}
+  </p>
+</div>
+<div className="analytics-insight-card">
+  <span>Total Savings</span>
+
+  <strong
+    className={
+      savingsAmount < 0
+        ? "negative"
+        : "positive"
+    }
+  >
+    {formatCurrency(savingsAmount)}
+  </strong>
+
+  <p>
+    {savingsAmountMessage}
+  </p>
+</div>
       {/* ======================================
           SMART BUDGET INSIGHTS
       ====================================== */}
