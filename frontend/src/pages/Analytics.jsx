@@ -221,7 +221,47 @@ function Analytics() {
     currentSavingsRate >= savingsTarget
       ? "You are meeting your savings target."
       : "Try to increase your monthly savings.";
+  // ==========================================
+  // FINANCIAL HEALTH SCORE
+  // ==========================================
 
+  const totalIncome = Number(analytics.totalIncome || 0);
+
+  const totalExpenses = Number(analytics.totalExpenses || 0);
+
+  const balance = Number(analytics.balance || 0);
+
+  const savingsRate = Number(analytics.savingsRate || 0);
+
+  let financialHealthScore = 0;
+
+  if (totalIncome > 0) {
+    financialHealthScore += Math.min(
+      Math.max(savingsRate * 2, 0),
+      40
+    );
+
+    if (balance > 0) {
+      financialHealthScore += 30;
+    }
+
+    if (totalExpenses < totalIncome) {
+      financialHealthScore += 30;
+    }
+  }
+
+  financialHealthScore = Math.round(
+    Math.min(Math.max(financialHealthScore, 0), 100)
+  );
+
+  const financialHealthMessage =
+    financialHealthScore >= 80
+      ? "Excellent financial health"
+      : financialHealthScore >= 60
+      ? "Good financial health"
+      : financialHealthScore >= 40
+      ? "Needs improvement"
+      : "Focus on improving your finances";
   return (
     <div className="analytics-page">
 
@@ -339,6 +379,96 @@ function Analytics() {
         </p>
       </div>
 
+      
+{/* ======================================
+    BUDGET SUMMARY
+====================================== */}
+
+<div className="budget-summary-grid">
+
+  <div className="budget-summary-card">
+    <span>Total Budgets</span>
+
+    <strong>
+      {budgetEntries.length}
+    </strong>
+  </div>
+
+  <div className="budget-summary-card budget-summary-safe">
+    <span>Safe Budgets</span>
+
+    <strong>
+      {
+        budgetEntries.filter(
+          ([, usage]) => Number(usage) < 80
+        ).length
+      }
+    </strong>
+  </div>
+
+  <div className="budget-summary-card budget-summary-warning">
+    <span>Warning Budgets</span>
+
+    <strong>
+      {
+        budgetEntries.filter(
+          ([, usage]) =>
+            Number(usage) >= 80 &&
+            Number(usage) < 100
+        ).length
+      }
+    </strong>
+  </div>
+
+  <div className="budget-summary-card budget-summary-danger">
+    <span>Exceeded Budgets</span>
+
+    <strong>
+      {
+        budgetEntries.filter(
+          ([, usage]) => Number(usage) >= 100
+        ).length
+      }
+    </strong>
+  </div>
+
+</div>
+
+{/* ======================================
+    FINANCIAL HEALTH SCORE
+====================================== */}
+
+<div className="financial-health-card">
+
+  <div className="financial-health-header">
+    <div>
+      <h2>Financial Health Score</h2>
+
+      <p>
+        Based on your income, expenses, balance,
+        and savings rate.
+      </p>
+    </div>
+
+    <strong className="financial-health-score">
+      {financialHealthScore}/100
+    </strong>
+  </div>
+
+  <div className="progress-track">
+    <div
+      className="progress-fill financial-health-fill"
+      style={{
+        width: `${financialHealthScore}%`,
+      }}
+    ></div>
+  </div>
+
+  <p className="financial-health-message">
+    {financialHealthMessage}
+  </p>
+
+</div>
       {/* ======================================
           BUDGET OVERVIEW
       ====================================== */}
@@ -371,6 +501,20 @@ function Analytics() {
                 budgetRemaining[budgetKey] || 0
               );
 
+              const statusClass =
+                usagePercentage >= 100
+                  ? "budget-danger"
+                  : usagePercentage >= 80
+                  ? "budget-warning"
+                  : "budget-safe";
+
+              const progressClass =
+                usagePercentage >= 100
+                  ? "budget-danger-fill"
+                  : usagePercentage >= 80
+                  ? "budget-warning-fill"
+                  : "budget-safe-fill";
+
               return (
                 <div
                   className="budget-overview-card"
@@ -383,23 +527,39 @@ function Analytics() {
                       <p>{month}</p>
                     </div>
 
-                    <strong>
+                    <strong className={statusClass}>
                       {usagePercentage.toFixed(1)}%
                     </strong>
                   </div>
 
                   <div className="progress-track">
                     <div
-                      className="progress-fill budget-progress-fill"
+                      className={`progress-fill ${progressClass}`}
                       style={{
                         width: `${usagePercentage}%`,
                       }}
                     ></div>
                   </div>
 
-                  <p className="budget-remaining">
-                    Remaining: {formatCurrency(remaining)}
-                  </p>
+               <p className="budget-remaining">
+  Remaining: {formatCurrency(remaining)}
+</p>
+
+<p
+  className={
+    usagePercentage >= 100
+      ? "budget-status budget-status-danger"
+      : usagePercentage >= 80
+      ? "budget-status budget-status-warning"
+      : "budget-status budget-status-safe"
+  }
+>
+  {usagePercentage >= 100
+    ? "⚠️ Budget exceeded"
+    : usagePercentage >= 80
+    ? "⚠️ Approaching budget limit"
+    : "✅ Spending is under control"}
+</p>
                 </div>
               );
             })}

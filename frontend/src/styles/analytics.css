@@ -572,3 +572,162 @@
   color: #4b5563;
   font-size: 14px;
 }
+/* ==========================================
+   BUDGET STATUS COLORS
+========================================== */
+
+.budget-safe {
+  color: #16a34a !important;
+}
+
+.budget-warning {
+  color: #d97706 !important;
+}
+
+.budget-danger {
+  color: #dc2626 !important;
+}
+
+.budget-safe-fill {
+  background: #16a34a !important;
+}
+
+.budget-warning-fill {
+  background: #f59e0b !important;
+}
+
+.budget-danger-fill {
+  background: #dc2626 !important;
+}
+/* ==========================================
+   BUDGET STATUS MESSAGES
+========================================== */
+
+.budget-status {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.budget-status-safe {
+  color: #16a34a;
+}
+
+.budget-status-warning {
+  color: #d97706;
+}
+
+.budget-status-danger {
+  color: #dc2626;
+}
+/* ==========================================
+   BUDGET SUMMARY
+========================================== */
+
+.budget-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.budget-summary-card {
+  padding: 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.budget-summary-card span {
+  display: block;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.budget-summary-card strong {
+  font-size: 26px;
+  color: #111827;
+}
+
+.budget-summary-safe {
+  border-left: 4px solid #16a34a;
+}
+
+.budget-summary-warning {
+  border-left: 4px solid #d97706;
+}
+
+.budget-summary-danger {
+  border-left: 4px solid #dc2626;
+}
+
+/* ==========================================
+   RESPONSIVE BUDGET SUMMARY
+========================================== */
+
+@media (max-width: 900px) {
+  .budget-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .budget-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==========================================
+   FINANCIAL HEALTH SCORE
+========================================== */
+
+.financial-health-card {
+  padding: 24px;
+  margin: 24px 0;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.financial-health-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.financial-health-header h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.financial-health-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.financial-health-score {
+  font-size: 28px;
+  color: #2563eb;
+  white-space: nowrap;
+}
+
+.financial-health-fill {
+  background: #2563eb !important;
+}
+
+.financial-health-message {
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+@media (max-width: 600px) {
+  .financial-health-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
