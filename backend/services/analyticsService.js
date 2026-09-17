@@ -47,7 +47,7 @@ const getUserAnalytics = async (userId) => {
 
       category: item.source,
 
-      amount: item.amount,
+      amount: Number(item.amount),
 
       date: item.date
         ? new Date(item.date)
@@ -70,7 +70,7 @@ const getUserAnalytics = async (userId) => {
 
       category: item.category,
 
-      amount: item.amount,
+      amount: Number(item.amount),
 
       date: item.date
         ? new Date(item.date)
@@ -99,7 +99,7 @@ const getUserAnalytics = async (userId) => {
 
       category: item.category,
 
-      amount: item.amount,
+      amount: Number(item.amount),
 
       date: month,
     });
@@ -133,7 +133,7 @@ const getUserAnalytics = async (userId) => {
 
 const parseCppOutput = (output) => {
 
-  const lines = output
+  const lines = String(output || "")
     .trim()
     .split(/\r?\n/);
 
@@ -270,16 +270,6 @@ const parseCppOutput = (output) => {
     // ========================================
     // BUDGET INSIGHTS
     // ========================================
-    //
-    // Important:
-    // Insight lines don't have "=".
-    //
-    // Example:
-    //
-    // Watch your Food spending. You have
-    // used 83.3333% of your budget.
-    //
-    // ========================================
 
     if (section === "budgetInsights") {
 
@@ -300,7 +290,6 @@ const parseCppOutput = (output) => {
 
 
     if (separatorIndex === -1) {
-
       return;
     }
 
@@ -309,13 +298,13 @@ const parseCppOutput = (output) => {
       line.substring(
         0,
         separatorIndex
-      );
+      ).trim();
 
 
     const value =
       line.substring(
         separatorIndex + 1
-      );
+      ).trim();
 
 
     // ========================================
@@ -326,8 +315,13 @@ const parseCppOutput = (output) => {
       section === "categorySpending"
     ) {
 
-      analytics.categorySpending[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.categorySpending[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -341,8 +335,13 @@ const parseCppOutput = (output) => {
       section === "monthlyExpenses"
     ) {
 
-      analytics.monthlyExpenses[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.monthlyExpenses[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -356,8 +355,13 @@ const parseCppOutput = (output) => {
       section === "monthlyIncome"
     ) {
 
-      analytics.monthlyIncome[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.monthlyIncome[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -371,8 +375,13 @@ const parseCppOutput = (output) => {
       section === "monthlyBalance"
     ) {
 
-      analytics.monthlyBalance[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.monthlyBalance[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -386,8 +395,13 @@ const parseCppOutput = (output) => {
       section === "budgetActual"
     ) {
 
-      analytics.budgetActual[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.budgetActual[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -401,8 +415,13 @@ const parseCppOutput = (output) => {
       section === "budgetRemaining"
     ) {
 
-      analytics.budgetRemaining[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.budgetRemaining[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -416,8 +435,13 @@ const parseCppOutput = (output) => {
       section === "budgetUsage"
     ) {
 
-      analytics.budgetUsage[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.budgetUsage[key] =
+          numberValue;
+      }
 
       return;
     }
@@ -431,8 +455,13 @@ const parseCppOutput = (output) => {
       section === "budgetOverspending"
     ) {
 
-      analytics.budgetOverspending[key] =
+      const numberValue =
         Number(value);
+
+      if (Number.isFinite(numberValue)) {
+        analytics.budgetOverspending[key] =
+          numberValue;
+      }
 
       return;
     }

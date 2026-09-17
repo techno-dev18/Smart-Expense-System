@@ -4,10 +4,12 @@ const fs = require("fs");
 
 const runCppAnalytics = (transactions) => {
   return new Promise((resolve, reject) => {
+
     const executableName =
       process.platform === "win32"
         ? "analytics.exe"
         : "analytics";
+
 
     const cppExecutable = path.join(
       __dirname,
@@ -15,19 +17,37 @@ const runCppAnalytics = (transactions) => {
       executableName
     );
 
+
+    // ==========================================
+    // CHECK EXECUTABLE
+    // ==========================================
+
     if (!fs.existsSync(cppExecutable)) {
+
       return reject(
         new Error(
           `C++ analytics executable not found: ${cppExecutable}`
         )
       );
+
     }
+
+
+    // ==========================================
+    // START C++ PROCESS
+    // ==========================================
 
     const cppProcess =
       spawn(cppExecutable);
 
+
     let output = "";
     let errorOutput = "";
+
+
+    // ==========================================
+    // C++ OUTPUT
+    // ==========================================
 
     cppProcess.stdout.on(
       "data",
@@ -36,6 +56,11 @@ const runCppAnalytics = (transactions) => {
       }
     );
 
+
+    // ==========================================
+    // C++ ERRORS
+    // ==========================================
+
     cppProcess.stderr.on(
       "data",
       (data) => {
@@ -43,48 +68,82 @@ const runCppAnalytics = (transactions) => {
       }
     );
 
+
+    // ==========================================
+    // PROCESS ERROR
+    // ==========================================
+
     cppProcess.on(
       "error",
       (error) => {
+
         reject(
           new Error(
             `Failed to start C++ analytics engine: ${error.message}`
           )
         );
+
       }
     );
+
+
+    // ==========================================
+    // PROCESS COMPLETE
+    // ==========================================
 
     cppProcess.on(
       "close",
       (code) => {
+
         if (code !== 0) {
+
           return reject(
             new Error(
               `C++ process failed with code ${code}: ${errorOutput}`
             )
           );
+
         }
 
+
         resolve(output);
+
       }
     );
 
+
+    // ==========================================
+    // PREPARE INPUT
+    // ==========================================
+
     const input =
-      transactions
+      (transactions || [])
         .map((transaction) => {
+
           return [
             transaction.type,
             transaction.category,
             transaction.amount,
             transaction.date,
           ].join("|");
+
         })
         .join("\n");
 
-    cppProcess.stdin.write(input);
+
+    // ==========================================
+    // SEND INPUT
+    // ==========================================
+
+    if (input) {
+      cppProcess.stdin.write(input);
+    }
+
     cppProcess.stdin.end();
+
   });
 };
+
 
 module.exports =
   runCppAnalytics;

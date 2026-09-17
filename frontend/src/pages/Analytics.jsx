@@ -21,7 +21,16 @@ import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 
 import "../styles/analytics.css";
-
+const CHART_COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#f59e0b",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#db2777",
+  "#65a30d",
+];
 function Analytics() {
   // ==========================================
   // STATES
@@ -67,9 +76,24 @@ function Analytics() {
   // ==========================================
 
   useEffect(() => {
-    loadAnalytics();
-  }, []);
+  loadAnalytics();
 
+  const handleFocus = () => {
+    loadAnalytics();
+  };
+
+  window.addEventListener(
+    "focus",
+    handleFocus
+  );
+
+  return () => {
+    window.removeEventListener(
+      "focus",
+      handleFocus
+    );
+  };
+}, []);
   // ==========================================
   // FORMAT CURRENCY
   // ==========================================
@@ -159,35 +183,44 @@ function Analytics() {
   // PIE CHART DATA
   // ==========================================
 
-  const categoryChartData =
-    categoryEntries.map(
+const categoryChartData =
+  categoryEntries
+    .map(
       ([category, amount]) => ({
         name: category,
-        value: Number(amount || 0),
+        value: Number(amount),
       })
+    )
+    .filter(
+      (item) =>
+        item.name &&
+        Number.isFinite(item.value) &&
+        item.value > 0
     );
 
   // ==========================================
   // BAR CHART DATA
   // ==========================================
 
-  const monthlyChartData = Array.from(
+ const monthlyChartData =
+  Array.from(
     new Set([
       ...Object.keys(monthlyExpenses),
       ...Object.keys(monthlyIncome),
     ])
-  ).map((month) => ({
-    month,
+  )
+    .sort()
+    .map((month) => ({
+      month,
 
-    income: Number(
-      monthlyIncome[month] || 0
-    ),
+      income: Number(
+        monthlyIncome[month] || 0
+      ),
 
-    expenses: Number(
-      monthlyExpenses[month] || 0
-    ),
-  }));
-
+      expenses: Number(
+        monthlyExpenses[month] || 0
+      ),
+    }));
   // ==========================================
   // PAGE
   // ==========================================
@@ -216,13 +249,16 @@ function Analytics() {
         </div>
 
 
-        <button
-          type="button"
-          className="refresh-button"
-          onClick={loadAnalytics}
-        >
-          ↻ Refresh
-        </button>
+     <button
+  type="button"
+  className="refresh-button"
+  onClick={loadAnalytics}
+  disabled={loading}
+>
+  {loading
+    ? "Refreshing..."
+    : "↻ Refresh"}
+</button>
 
       </div>
 
@@ -468,23 +504,30 @@ function Analytics() {
                   outerRadius={135}
                   innerRadius={60}
                   paddingAngle={2}
-                  label={({
-                    name,
-                    percent,
-                  }) =>
-                    `${name} ${(
-                      percent * 100
-                    ).toFixed(1)}%`
-                  }
+                 label={({
+  name,
+  percent,
+}) =>
+  percent >= 0.05
+    ? `${name} ${(
+        percent * 100
+      ).toFixed(0)}%`
+    : ""
+}
                 >
 
-                  {categoryChartData.map(
-                    (entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                      />
-                    )
-                  )}
+                {categoryChartData.map(
+  (entry, index) => (
+    <Cell
+      key={`cell-${entry.name}`}
+      fill={
+        CHART_COLORS[
+          index % CHART_COLORS.length
+        ]
+      }
+    />
+  )
+)}
 
                 </Pie>
 

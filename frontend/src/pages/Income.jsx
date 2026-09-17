@@ -15,17 +15,21 @@ import {
 import "../styles/income.css";
 import "../styles/forms.css";
 
-const Income = () => {
-  const initialForm = {
-    source: "",
-    amount: "",
-    description: "",
-    date: "",
-    paymentMethod: "Cash",
-  };
+const getToday = () => {
+  return new Date().toLocaleDateString("en-CA");
+};
 
+const createInitialForm = () => ({
+  source: "",
+  amount: "",
+  description: "",
+  date: getToday(),
+  paymentMethod: "Cash",
+});
+
+const Income = () => {
   const [formData, setFormData] =
-    useState(initialForm);
+    useState(createInitialForm);
 
   const [income, setIncome] =
     useState([]);
@@ -124,8 +128,11 @@ const Income = () => {
       return "Description cannot exceed 200 characters.";
     }
 
+    if (!formData.date) {
+      return "Date is required.";
+    }
+
     if (
-      formData.date &&
       Number.isNaN(
         new Date(
           formData.date
@@ -189,7 +196,10 @@ const Income = () => {
         );
       }
 
-      setFormData(initialForm);
+      setFormData(
+        createInitialForm()
+      );
+
       setEditingId(null);
 
       await loadIncome();
@@ -228,7 +238,7 @@ const Income = () => {
             0,
             10
           )
-        : "",
+        : getToday(),
 
       paymentMethod:
         item.paymentMethod ||
@@ -246,7 +256,11 @@ const Income = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setFormData(initialForm);
+
+    setFormData(
+      createInitialForm()
+    );
+
     setError("");
     setSuccess("");
   };
@@ -357,7 +371,6 @@ const Income = () => {
         >
 
           <div>
-
             <label htmlFor="source">
               Income Source
             </label>
@@ -373,7 +386,6 @@ const Income = () => {
               }
               required
             >
-
               <option value="">
                 Select Source
               </option>
@@ -405,13 +417,10 @@ const Income = () => {
               <option value="Other">
                 Other
               </option>
-
             </select>
-
           </div>
 
           <div>
-
             <label htmlFor="amount">
               Amount
             </label>
@@ -432,11 +441,9 @@ const Income = () => {
               }
               required
             />
-
           </div>
 
           <div>
-
             <label htmlFor="description">
               Description
             </label>
@@ -454,11 +461,9 @@ const Income = () => {
                 handleChange
               }
             />
-
           </div>
 
           <div>
-
             <label htmlFor="date">
               Date
             </label>
@@ -473,12 +478,11 @@ const Income = () => {
               onChange={
                 handleChange
               }
+              required
             />
-
           </div>
 
           <div>
-
             <label htmlFor="paymentMethod">
               Payment Method
             </label>
@@ -493,7 +497,6 @@ const Income = () => {
                 handleChange
               }
             >
-
               <option value="Cash">
                 Cash
               </option>
@@ -513,9 +516,7 @@ const Income = () => {
               <option value="Other">
                 Other
               </option>
-
             </select>
-
           </div>
 
           <div className="form-actions">

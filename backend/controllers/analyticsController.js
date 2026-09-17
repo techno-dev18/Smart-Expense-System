@@ -2,14 +2,19 @@ const { getUserAnalytics } = require("../services/analyticsService");
 
 const getAnalytics = async (req, res) => {
   try {
-    const analytics = await getUserAnalytics(req.user);
+    const userId = req.user._id;
+
+    const analytics = await getUserAnalytics(userId);
 
     res.status(200).json({
       success: true,
       analytics,
     });
   } catch (error) {
-    console.error("Analytics Controller Error:", error);
+    console.error(
+      "Analytics Controller Error:",
+      error
+    );
 
     res.status(500).json({
       success: false,

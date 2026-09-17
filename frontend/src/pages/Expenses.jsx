@@ -14,17 +14,21 @@ import {
 
 import "../styles/expenses.css";
 
-const Expenses = () => {
-  const initialForm = {
-    category: "",
-    amount: "",
-    description: "",
-    date: "",
-    paymentMethod: "Cash",
-  };
+const getToday = () => {
+  return new Date().toLocaleDateString("en-CA");
+};
 
+const createInitialForm = () => ({
+  category: "",
+  amount: "",
+  description: "",
+  date: getToday(),
+  paymentMethod: "Cash",
+});
+
+const Expenses = () => {
   const [formData, setFormData] =
-    useState(initialForm);
+    useState(createInitialForm);
 
   const [expenses, setExpenses] =
     useState([]);
@@ -123,8 +127,11 @@ const Expenses = () => {
       return "Description cannot exceed 200 characters.";
     }
 
+    if (!formData.date) {
+      return "Date is required.";
+    }
+
     if (
-      formData.date &&
       Number.isNaN(
         new Date(
           formData.date
@@ -188,7 +195,10 @@ const Expenses = () => {
         );
       }
 
-      setFormData(initialForm);
+      setFormData(
+        createInitialForm()
+      );
+
       setEditingId(null);
 
       await loadExpenses();
@@ -227,7 +237,7 @@ const Expenses = () => {
             0,
             10
           )
-        : "",
+        : getToday(),
 
       paymentMethod:
         expense.paymentMethod ||
@@ -245,7 +255,11 @@ const Expenses = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setFormData(initialForm);
+
+    setFormData(
+      createInitialForm()
+    );
+
     setError("");
     setSuccess("");
   };
@@ -318,7 +332,6 @@ const Expenses = () => {
       <div className="page-header">
 
         <div>
-
           <h1>
             Expenses
           </h1>
@@ -327,7 +340,6 @@ const Expenses = () => {
             Track and manage your
             daily expenses.
           </p>
-
         </div>
 
       </div>
@@ -358,7 +370,6 @@ const Expenses = () => {
         >
 
           <div>
-
             <label htmlFor="category">
               Category
             </label>
@@ -374,7 +385,6 @@ const Expenses = () => {
               }
               required
             >
-
               <option value="">
                 Select Category
               </option>
@@ -414,13 +424,10 @@ const Expenses = () => {
               <option value="Other">
                 Other
               </option>
-
             </select>
-
           </div>
 
           <div>
-
             <label htmlFor="amount">
               Amount
             </label>
@@ -441,11 +448,9 @@ const Expenses = () => {
               }
               required
             />
-
           </div>
 
           <div>
-
             <label htmlFor="description">
               Description
             </label>
@@ -463,10 +468,9 @@ const Expenses = () => {
                 handleChange
               }
             />
-
           </div>
 
-          <div>
+          <div className="form-group">
 
             <label htmlFor="date">
               Date
@@ -482,12 +486,12 @@ const Expenses = () => {
               onChange={
                 handleChange
               }
+              required
             />
 
           </div>
 
           <div>
-
             <label htmlFor="paymentMethod">
               Payment Method
             </label>
@@ -502,7 +506,6 @@ const Expenses = () => {
                 handleChange
               }
             >
-
               <option value="Cash">
                 Cash
               </option>
@@ -526,9 +529,7 @@ const Expenses = () => {
               <option value="Other">
                 Other
               </option>
-
             </select>
-
           </div>
 
           <div className="form-actions">
