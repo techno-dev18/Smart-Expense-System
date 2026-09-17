@@ -6,7 +6,6 @@ import {
   Cell,
   Tooltip,
   Legend,
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
@@ -211,6 +210,29 @@ function Analytics() {
       ),
     }));
 
+  // ==========================================
+  // SAVINGS PROGRESS
+  // ==========================================
+
+  const savingsTarget = 20;
+
+  const currentSavingsRate = Number(
+    analytics?.savingsRate || 0
+  );
+
+  const savingsProgress = Math.min(
+    Math.max(
+      (currentSavingsRate / savingsTarget) * 100,
+      0
+    ),
+    100
+  );
+
+  const savingsMessage =
+    currentSavingsRate >= savingsTarget
+      ? "You are meeting your savings target."
+      : "Try to increase your monthly savings.";
+
   return (
     <div className="analytics-page">
 
@@ -299,6 +321,39 @@ function Analytics() {
       </div>
 
       {/* ======================================
+          SAVINGS PROGRESS
+      ====================================== */}
+
+      <div className="savings-card">
+        <div className="savings-header">
+          <div>
+            <h2>Savings Progress</h2>
+
+            <p>
+              Target savings rate: {savingsTarget}%
+            </p>
+          </div>
+
+          <span className="savings-percentage">
+            {currentSavingsRate.toFixed(2)}%
+          </span>
+        </div>
+
+        <div className="progress-track">
+          <div
+            className="progress-fill"
+            style={{
+              width: `${savingsProgress}%`,
+            }}
+          ></div>
+        </div>
+
+        <p className="savings-message">
+          {savingsMessage}
+        </p>
+      </div>
+
+      {/* ======================================
           SPENDING BY CATEGORY
       ====================================== */}
 
@@ -369,52 +424,64 @@ function Analytics() {
       {/* ======================================
           SPENDING PIE CHART
       ====================================== */}
-{/* Category Spending Chart */}
-<div className="chart-card">
-  <h2>Category Spending</h2>
 
-  {categoryChartData.length === 0 ? (
-    <p className="no-data">No category spending data available.</p>
-  ) : (
-    <div className="chart-scroll">
-      <PieChart width={550} height={420}>
-        <Pie
-          data={categoryChartData}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          outerRadius={135}
-          innerRadius={60}
-          paddingAngle={2}
-          label={({ name, percent }) =>
-            percent >= 0.05
-              ? `${name} ${(percent * 100).toFixed(0)}%`
-              : ""
-          }
-          isAnimationActive={false}
-        >
-          {categoryChartData.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
-            />
-          ))}
-        </Pie>
+      <div className="chart-card">
+        <h2>Category Spending</h2>
 
-        <Tooltip
-          formatter={(value) => [
-            `₹${Number(value).toLocaleString("en-IN")}`,
-            "Amount",
-          ]}
-        />
+        {categoryChartData.length === 0 ? (
+          <p className="no-data">
+            No category spending data available.
+          </p>
+        ) : (
+          <div className="chart-scroll">
+            <PieChart
+              width={550}
+              height={420}
+            >
+              <Pie
+                data={categoryChartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={135}
+                innerRadius={60}
+                paddingAngle={2}
+                label={({ name, percent }) =>
+                  percent >= 0.05
+                    ? `${name} ${(percent * 100).toFixed(0)}%`
+                    : ""
+                }
+                isAnimationActive={false}
+              >
+                {categoryChartData.map(
+                  (entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        CHART_COLORS[
+                          index % CHART_COLORS.length
+                        ]
+                      }
+                    />
+                  )
+                )}
+              </Pie>
 
-        <Legend />
-      </PieChart>
-    </div>
-  )}
-</div>
-     
+              <Tooltip
+                formatter={(value) => [
+                  `₹${Number(value).toLocaleString(
+                    "en-IN"
+                  )}`,
+                  "Amount",
+                ]}
+              />
+
+              <Legend />
+            </PieChart>
+          </div>
+        )}
+      </div>
 
       {/* ======================================
           MONTHLY EXPENSES
@@ -498,65 +565,72 @@ function Analytics() {
           MONTHLY INCOME VS EXPENSES
       ====================================== */}
 
-      {/* Monthly Income and Expenses Chart */}
-<div className="chart-card">
-  <h2>Monthly Income Vs Expenses</h2>
+      <div className="chart-card">
+        <h2>Monthly Income Vs Expenses</h2>
 
-  {monthlyChartData.length === 0 ? (
-    <p className="no-data">No monthly data available.</p>
-  ) : (
-    <div className="chart-scroll">
-      <BarChart
-        width={700}
-        height={420}
-        data={monthlyChartData}
-        margin={{
-          top: 20,
-          right: 30,
-          left: 20,
-          bottom: 20,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
+        {monthlyChartData.length === 0 ? (
+          <p className="no-data">
+            No monthly data available.
+          </p>
+        ) : (
+          <div className="chart-scroll">
+            <BarChart
+              width={700}
+              height={420}
+              data={monthlyChartData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+              />
 
-        <XAxis
-          dataKey="month"
-          tick={{ fontSize: 12 }}
-        />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12 }}
+              />
 
-        <YAxis
-          tickFormatter={(value) =>
-            `₹${Number(value).toLocaleString("en-IN")}`
-          }
-        />
+              <YAxis
+                tickFormatter={(value) =>
+                  `₹${Number(value).toLocaleString(
+                    "en-IN"
+                  )}`
+                }
+              />
 
-        <Tooltip
-          formatter={(value) => [
-            `₹${Number(value).toLocaleString("en-IN")}`,
-          ]}
-        />
+              <Tooltip
+                formatter={(value) => [
+                  `₹${Number(value).toLocaleString(
+                    "en-IN"
+                  )}`,
+                ]}
+              />
 
-        <Legend />
+              <Legend />
 
-        <Bar
-          dataKey="income"
-          name="Income"
-          fill="#16a34a"
-          radius={[5, 5, 0, 0]}
-          isAnimationActive={false}
-        />
+              <Bar
+                dataKey="income"
+                name="Income"
+                fill="#16a34a"
+                radius={[5, 5, 0, 0]}
+                isAnimationActive={false}
+              />
 
-        <Bar
-          dataKey="expenses"
-          name="Expenses"
-          fill="#dc2626"
-          radius={[5, 5, 0, 0]}
-          isAnimationActive={false}
-        />
-      </BarChart>
-    </div>
-  )}
-</div>
+              <Bar
+                dataKey="expenses"
+                name="Expenses"
+                fill="#dc2626"
+                radius={[5, 5, 0, 0]}
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </div>
+        )}
+      </div>
 
       {/* ======================================
           FINANCIAL INSIGHTS
