@@ -432,16 +432,21 @@
 .chart-card {
   width: 100%;
   min-width: 0;
-  padding: 20px;
+  padding: 24px;
   margin-bottom: 24px;
   background: #ffffff;
-  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   box-sizing: border-box;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .chart-card h2 {
-  margin-bottom: 15px;
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
 }
 
 .chart-scroll {
