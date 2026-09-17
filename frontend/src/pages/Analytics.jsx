@@ -42,12 +42,9 @@ function Analytics() {
   // ==========================================
 
   const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString(
-      "en-IN",
-      {
-        maximumFractionDigits: 2,
-      }
-    )}`;
+    return `₹${Number(amount || 0).toLocaleString("en-IN", {
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   // ==========================================
@@ -91,10 +88,7 @@ function Analytics() {
     window.addEventListener("focus", handleFocus);
 
     return () => {
-      window.removeEventListener(
-        "focus",
-        handleFocus
-      );
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
@@ -148,32 +142,29 @@ function Analytics() {
   // ANALYTICS DATA
   // ==========================================
 
-  const categorySpending =
-    analytics.categorySpending || {};
+  const categorySpending = analytics.categorySpending || {};
 
-  const monthlyExpenses =
-    analytics.monthlyExpenses || {};
+  const monthlyExpenses = analytics.monthlyExpenses || {};
 
-  const monthlyIncome =
-    analytics.monthlyIncome || {};
+  const monthlyIncome = analytics.monthlyIncome || {};
 
-  const budgetInsights =
-    analytics.budgetInsights || [];
+  const budgetInsights = analytics.budgetInsights || [];
 
-  const categoryEntries =
-    Object.entries(categorySpending);
+  const budgetUsage = analytics.budgetUsage || {};
 
-  const expenseEntries =
-    Object.entries(monthlyExpenses).sort(
-      ([monthA], [monthB]) =>
-        monthA.localeCompare(monthB)
-    );
+  const budgetRemaining = analytics.budgetRemaining || {};
 
-  const incomeEntries =
-    Object.entries(monthlyIncome).sort(
-      ([monthA], [monthB]) =>
-        monthA.localeCompare(monthB)
-    );
+  const categoryEntries = Object.entries(categorySpending);
+
+  const expenseEntries = Object.entries(monthlyExpenses).sort(
+    ([monthA], [monthB]) => monthA.localeCompare(monthB)
+  );
+
+  const incomeEntries = Object.entries(monthlyIncome).sort(
+    ([monthA], [monthB]) => monthA.localeCompare(monthB)
+  );
+
+  const budgetEntries = Object.entries(budgetUsage);
 
   // ==========================================
   // PIE CHART DATA
@@ -205,9 +196,7 @@ function Analytics() {
     .map((month) => ({
       month,
       income: Number(monthlyIncome[month] || 0),
-      expenses: Number(
-        monthlyExpenses[month] || 0
-      ),
+      expenses: Number(monthlyExpenses[month] || 0),
     }));
 
   // ==========================================
@@ -311,10 +300,7 @@ function Analytics() {
           <span>Savings Rate</span>
 
           <strong>
-            {Number(
-              analytics.savingsRate || 0
-            ).toFixed(1)}
-            %
+            {Number(analytics.savingsRate || 0).toFixed(1)}%
           </strong>
         </div>
 
@@ -354,6 +340,74 @@ function Analytics() {
       </div>
 
       {/* ======================================
+          BUDGET OVERVIEW
+      ====================================== */}
+
+      <div className="analytics-section">
+        <div className="section-heading">
+          <h2>Budget Overview</h2>
+
+          <p>
+            Monitor your budget usage and remaining limits.
+          </p>
+        </div>
+
+        {budgetEntries.length === 0 ? (
+          <EmptyState
+            title="No budget data"
+            message="Create a budget to view budget progress."
+          />
+        ) : (
+          <div className="budget-overview-list">
+            {budgetEntries.map(([budgetKey, usage]) => {
+              const [category, month] = budgetKey.split("|");
+
+              const usagePercentage = Math.min(
+                Math.max(Number(usage) || 0, 0),
+                100
+              );
+
+              const remaining = Number(
+                budgetRemaining[budgetKey] || 0
+              );
+
+              return (
+                <div
+                  className="budget-overview-card"
+                  key={budgetKey}
+                >
+                  <div className="budget-overview-header">
+                    <div>
+                      <h3>{category}</h3>
+
+                      <p>{month}</p>
+                    </div>
+
+                    <strong>
+                      {usagePercentage.toFixed(1)}%
+                    </strong>
+                  </div>
+
+                  <div className="progress-track">
+                    <div
+                      className="progress-fill budget-progress-fill"
+                      style={{
+                        width: `${usagePercentage}%`,
+                      }}
+                    ></div>
+                  </div>
+
+                  <p className="budget-remaining">
+                    Remaining: {formatCurrency(remaining)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ======================================
           SPENDING BY CATEGORY
       ====================================== */}
 
@@ -374,49 +428,45 @@ function Analytics() {
           />
         ) : (
           <div className="analytics-category-list">
-            {categoryEntries.map(
-              ([category, amount]) => {
-                const percentage =
-                  Number(analytics.totalExpenses) > 0
-                    ? (Number(amount) /
-                        Number(
-                          analytics.totalExpenses
-                        )) *
-                      100
-                    : 0;
+            {categoryEntries.map(([category, amount]) => {
+              const percentage =
+                Number(analytics.totalExpenses) > 0
+                  ? (Number(amount) /
+                      Number(analytics.totalExpenses)) *
+                    100
+                  : 0;
 
-                return (
-                  <div
-                    className="analytics-category-row"
-                    key={category}
-                  >
-                    <div className="analytics-category-info">
-                      <span>{category}</span>
+              return (
+                <div
+                  className="analytics-category-row"
+                  key={category}
+                >
+                  <div className="analytics-category-info">
+                    <span>{category}</span>
 
-                      <strong>
-                        {formatCurrency(amount)}
-                      </strong>
-                    </div>
-
-                    <div className="analytics-category-track">
-                      <div
-                        className="analytics-category-fill"
-                        style={{
-                          width: `${Math.min(
-                            Math.max(percentage, 0),
-                            100
-                          )}%`,
-                        }}
-                      />
-                    </div>
-
-                    <span className="analytics-category-percentage">
-                      {percentage.toFixed(1)}%
-                    </span>
+                    <strong>
+                      {formatCurrency(amount)}
+                    </strong>
                   </div>
-                );
-              }
-            )}
+
+                  <div className="analytics-category-track">
+                    <div
+                      className="analytics-category-fill"
+                      style={{
+                        width: `${Math.min(
+                          Math.max(percentage, 0),
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <span className="analytics-category-percentage">
+                    {percentage.toFixed(1)}%
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -434,10 +484,7 @@ function Analytics() {
           </p>
         ) : (
           <div className="chart-scroll">
-            <PieChart
-              width={550}
-              height={420}
-            >
+            <PieChart width={550} height={420}>
               <Pie
                 data={categoryChartData}
                 dataKey="value"
@@ -454,25 +501,21 @@ function Analytics() {
                 }
                 isAnimationActive={false}
               >
-                {categoryChartData.map(
-                  (entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        CHART_COLORS[
-                          index % CHART_COLORS.length
-                        ]
-                      }
-                    />
-                  )
-                )}
+                {categoryChartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={
+                      CHART_COLORS[
+                        index % CHART_COLORS.length
+                      ]
+                    }
+                  />
+                ))}
               </Pie>
 
               <Tooltip
                 formatter={(value) => [
-                  `₹${Number(value).toLocaleString(
-                    "en-IN"
-                  )}`,
+                  `₹${Number(value).toLocaleString("en-IN")}`,
                   "Amount",
                 ]}
               />
@@ -504,20 +547,18 @@ function Analytics() {
           />
         ) : (
           <div className="monthly-data-list">
-            {expenseEntries.map(
-              ([month, amount]) => (
-                <div
-                  className="monthly-data-row"
-                  key={month}
-                >
-                  <span>{month}</span>
+            {expenseEntries.map(([month, amount]) => (
+              <div
+                className="monthly-data-row"
+                key={month}
+              >
+                <span>{month}</span>
 
-                  <strong>
-                    {formatCurrency(amount)}
-                  </strong>
-                </div>
-              )
-            )}
+                <strong>
+                  {formatCurrency(amount)}
+                </strong>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -543,20 +584,18 @@ function Analytics() {
           />
         ) : (
           <div className="monthly-data-list">
-            {incomeEntries.map(
-              ([month, amount]) => (
-                <div
-                  className="monthly-data-row"
-                  key={month}
-                >
-                  <span>{month}</span>
+            {incomeEntries.map(([month, amount]) => (
+              <div
+                className="monthly-data-row"
+                key={month}
+              >
+                <span>{month}</span>
 
-                  <strong>
-                    {formatCurrency(amount)}
-                  </strong>
-                </div>
-              )
-            )}
+                <strong>
+                  {formatCurrency(amount)}
+                </strong>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -585,9 +624,7 @@ function Analytics() {
                 bottom: 20,
               }}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-              />
+              <CartesianGrid strokeDasharray="3 3" />
 
               <XAxis
                 dataKey="month"
@@ -596,17 +633,13 @@ function Analytics() {
 
               <YAxis
                 tickFormatter={(value) =>
-                  `₹${Number(value).toLocaleString(
-                    "en-IN"
-                  )}`
+                  `₹${Number(value).toLocaleString("en-IN")}`
                 }
               />
 
               <Tooltip
                 formatter={(value) => [
-                  `₹${Number(value).toLocaleString(
-                    "en-IN"
-                  )}`,
+                  `₹${Number(value).toLocaleString("en-IN")}`,
                 ]}
               />
 
@@ -652,9 +685,7 @@ function Analytics() {
             <span>Average Expense</span>
 
             <strong>
-              {formatCurrency(
-                analytics.averageExpense
-              )}
+              {formatCurrency(analytics.averageExpense)}
             </strong>
           </div>
 
@@ -699,18 +730,16 @@ function Analytics() {
           </div>
 
           <div className="analytics-insights-list">
-            {budgetInsights.map(
-              (insight, index) => (
-                <div
-                  className="analytics-insight-item"
-                  key={index}
-                >
-                  <span>💡</span>
+            {budgetInsights.map((insight, index) => (
+              <div
+                className="analytics-insight-item"
+                key={index}
+              >
+                <span>💡</span>
 
-                  <p>{insight}</p>
-                </div>
-              )
-            )}
+                <p>{insight}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -523,3 +523,52 @@
   color: #4b5563;
   font-size: 14px;
 }
+.budget-overview-list {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(260px, 1fr)
+  );
+  gap: 20px;
+}
+
+.budget-overview-card {
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+}
+
+.budget-overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-overview-header h3 {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 17px;
+}
+
+.budget-overview-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.budget-overview-header strong {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.budget-progress-fill {
+  background: #2563eb;
+}
+
+.budget-remaining {
+  margin: 14px 0 0;
+  color: #4b5563;
+  font-size: 14px;
+}
