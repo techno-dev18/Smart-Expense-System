@@ -10,6 +10,7 @@ const API = axios.create({
   },
 });
 
+// Attach JWT token to every request
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -20,15 +21,12 @@ API.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
+// Handle unauthorized requests
 API.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
 
   (error) => {
     if (error.response?.status === 401) {
