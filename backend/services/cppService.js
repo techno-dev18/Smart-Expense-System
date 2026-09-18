@@ -2,7 +2,14 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-const runCppAnalytics = (transactions) => {
+const CPP_TIMEOUT = 10000;
+
+
+// ==========================================
+// RUN C++ ANALYTICS
+// ==========================================
+
+const runCppAnalytics = (transactions = []) => {
   return new Promise((resolve, reject) => {
 
     const executableName =
@@ -18,122 +25,163 @@ const runCppAnalytics = (transactions) => {
     );
 
 
-    // ==========================================
+    // ========================================
     // CHECK EXECUTABLE
-    // ==========================================
+    // ========================================
 
     if (!fs.existsSync(cppExecutable)) {
-
       return reject(
         new Error(
           `C++ analytics executable not found: ${cppExecutable}`
         )
       );
-
     }
 
 
-    // ==========================================
-    // START C++ PROCESS
-    // ==========================================
+    // ========================================
+    // PREPARE INPUT
+    // ========================================
 
-    const cppProcess =
-      spawn(cppExecutable);
+    const input = transactions
+      .map((transaction) => {
+
+        return [
+          String(transaction.type ?? ""),
+          String(transaction.category ?? ""),
+          String(transaction.amount ?? 0),
+          String(transaction.date ?? ""),
+        ].join("|");
+
+      })
+      .join("\n");
+
+
+    // ========================================
+    // START PROCESS
+    // ========================================
+
+    const cppProcess = spawn(
+      cppExecutable,
+      [],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+      }
+    );
 
 
     let output = "";
     let errorOutput = "";
+    let settled = false;
 
 
-    // ==========================================
-    // C++ OUTPUT
-    // ==========================================
+    // ========================================
+    // CLEANUP
+    // ========================================
 
-    cppProcess.stdout.on(
-      "data",
-      (data) => {
-        output += data.toString();
-      }
-    );
+    const cleanup = () => {
+      clearTimeout(timeout);
+    };
 
 
-    // ==========================================
-    // C++ ERRORS
-    // ==========================================
+    const resolveOnce = (value) => {
 
-    cppProcess.stderr.on(
-      "data",
-      (data) => {
-        errorOutput += data.toString();
-      }
-    );
+      if (settled) return;
+
+      settled = true;
+
+      cleanup();
+
+      resolve(value);
+    };
 
 
-    // ==========================================
+    const rejectOnce = (error) => {
+
+      if (settled) return;
+
+      settled = true;
+
+      cleanup();
+
+      reject(error);
+    };
+
+
+    // ========================================
+    // TIMEOUT
+    // ========================================
+
+    const timeout = setTimeout(() => {
+
+      cppProcess.kill();
+
+      rejectOnce(
+        new Error(
+          "C++ analytics process timed out"
+        )
+      );
+
+    }, CPP_TIMEOUT);
+
+
+    // ========================================
+    // STANDARD OUTPUT
+    // ========================================
+
+    cppProcess.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+
+    // ========================================
+    // ERROR OUTPUT
+    // ========================================
+
+    cppProcess.stderr.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+
+    // ========================================
     // PROCESS ERROR
-    // ==========================================
+    // ========================================
 
-    cppProcess.on(
-      "error",
-      (error) => {
+    cppProcess.on("error", (error) => {
 
-        reject(
+      rejectOnce(
+        new Error(
+          `Failed to start C++ analytics engine: ${error.message}`
+        )
+      );
+
+    });
+
+
+    // ========================================
+    // PROCESS COMPLETE
+    // ========================================
+
+    cppProcess.on("close", (code) => {
+
+      if (code !== 0) {
+
+        return rejectOnce(
           new Error(
-            `Failed to start C++ analytics engine: ${error.message}`
+            `C++ process failed with code ${code}: ${errorOutput}`
           )
         );
 
       }
-    );
 
 
-    // ==========================================
-    // PROCESS COMPLETE
-    // ==========================================
+      resolveOnce(output);
 
-    cppProcess.on(
-      "close",
-      (code) => {
-
-        if (code !== 0) {
-
-          return reject(
-            new Error(
-              `C++ process failed with code ${code}: ${errorOutput}`
-            )
-          );
-
-        }
+    });
 
 
-        resolve(output);
-
-      }
-    );
-
-
-    // ==========================================
-    // PREPARE INPUT
-    // ==========================================
-
-    const input =
-      (transactions || [])
-        .map((transaction) => {
-
-          return [
-            transaction.type,
-            transaction.category,
-            transaction.amount,
-            transaction.date,
-          ].join("|");
-
-        })
-        .join("\n");
-
-
-    // ==========================================
+    // ========================================
     // SEND INPUT
-    // ==========================================
+    // ========================================
 
     if (input) {
       cppProcess.stdin.write(input);
@@ -145,5 +193,4 @@ const runCppAnalytics = (transactions) => {
 };
 
 
-module.exports =
-  runCppAnalytics;
+module.exports = runCppAnalytics;

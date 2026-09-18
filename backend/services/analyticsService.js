@@ -11,30 +11,42 @@ const runCppAnalytics = require("./cppService");
 
 const getUserAnalytics = async (userId) => {
 
-  const expenses = await Expense.find({
-    user: userId,
-  }).sort({
-    date: 1,
-  });
+  // Fetch all collections in parallel
+  const [
+    expenses,
+    income,
+    budgets,
+  ] = await Promise.all([
 
+    Expense.find({
+      user: userId,
+    })
+      .sort({
+        date: 1,
+      })
+      .lean(),
 
-  const income = await Income.find({
-    user: userId,
-  }).sort({
-    date: 1,
-  });
+    Income.find({
+      user: userId,
+    })
+      .sort({
+        date: 1,
+      })
+      .lean(),
 
+    Budget.find({
+      user: userId,
+    })
+      .sort({
+        year: 1,
+        month: 1,
+      })
+      .lean(),
 
-  const budgets = await Budget.find({
-    user: userId,
-  }).sort({
-    year: 1,
-    month: 1,
-  });
+  ]);
 
 
   const transactions = [];
-
 
   // ==========================================
   // INCOME
@@ -111,19 +123,17 @@ const getUserAnalytics = async (userId) => {
   // RUN C++ ANALYTICS
   // ==========================================
 
-  const cppOutput =
-    await runCppAnalytics(
-      transactions
-    );
+  const cppOutput = await runCppAnalytics(
+    transactions
+  );
 
 
   // ==========================================
   // PARSE C++ OUTPUT
   // ==========================================
 
-  return parseCppOutput(
-    cppOutput
-  );
+  return parseCppOutput(cppOutput);
+
 };
 
 
@@ -152,7 +162,6 @@ const parseCppOutput = (output) => {
 
     topCategory: "",
 
-
     categorySpending: {},
 
     monthlyExpenses: {},
@@ -160,7 +169,6 @@ const parseCppOutput = (output) => {
     monthlyIncome: {},
 
     monthlyBalance: {},
-
 
     budgetActual: {},
 
@@ -171,6 +179,7 @@ const parseCppOutput = (output) => {
     budgetOverspending: {},
 
     budgetInsights: [],
+
   };
 
 
@@ -196,73 +205,47 @@ const parseCppOutput = (output) => {
     // ========================================
 
     if (line === "CATEGORY_SPENDING=") {
-
       section = "categorySpending";
-
       return;
     }
-
 
     if (line === "MONTHLY_EXPENSES=") {
-
       section = "monthlyExpenses";
-
       return;
     }
-
 
     if (line === "MONTHLY_INCOME=") {
-
       section = "monthlyIncome";
-
       return;
     }
-
 
     if (line === "MONTHLY_BALANCE=") {
-
       section = "monthlyBalance";
-
       return;
     }
-
 
     if (line === "BUDGET_ACTUAL=") {
-
       section = "budgetActual";
-
       return;
     }
-
 
     if (line === "BUDGET_REMAINING=") {
-
       section = "budgetRemaining";
-
       return;
     }
-
 
     if (line === "BUDGET_USAGE=") {
-
       section = "budgetUsage";
-
       return;
     }
-
 
     if (line === "BUDGET_OVERSPENDING=") {
-
       section = "budgetOverspending";
-
       return;
     }
 
-
     if (line === "BUDGET_INSIGHTS=") {
-
       section = "budgetInsights";
-
       return;
     }
 
@@ -273,9 +256,7 @@ const parseCppOutput = (output) => {
 
     if (section === "budgetInsights") {
 
-      analytics.budgetInsights.push(
-        line
-      );
+      analytics.budgetInsights.push(line);
 
       return;
     }
@@ -285,182 +266,65 @@ const parseCppOutput = (output) => {
     // FIND KEY/VALUE SEPARATOR
     // ========================================
 
-    const separatorIndex =
-      line.indexOf("=");
-
+    const separatorIndex = line.indexOf("=");
 
     if (separatorIndex === -1) {
       return;
     }
 
 
-    const key =
-      line.substring(
-        0,
-        separatorIndex
-      ).trim();
+    const key = line
+      .substring(0, separatorIndex)
+      .trim();
 
 
-    const value =
-      line.substring(
-        separatorIndex + 1
-      ).trim();
+    const value = line
+      .substring(separatorIndex + 1)
+      .trim();
 
 
     // ========================================
-    // CATEGORY SPENDING
+    // NUMERIC SECTIONS
     // ========================================
 
-    if (
-      section === "categorySpending"
-    ) {
+    const numericSections = {
 
-      const numberValue =
-        Number(value);
+      categorySpending:
+        analytics.categorySpending,
+
+      monthlyExpenses:
+        analytics.monthlyExpenses,
+
+      monthlyIncome:
+        analytics.monthlyIncome,
+
+      monthlyBalance:
+        analytics.monthlyBalance,
+
+      budgetActual:
+        analytics.budgetActual,
+
+      budgetRemaining:
+        analytics.budgetRemaining,
+
+      budgetUsage:
+        analytics.budgetUsage,
+
+      budgetOverspending:
+        analytics.budgetOverspending,
+
+    };
+
+
+    if (section in numericSections) {
+
+      const numberValue = Number(value);
 
       if (Number.isFinite(numberValue)) {
-        analytics.categorySpending[key] =
+
+        numericSections[section][key] =
           numberValue;
-      }
 
-      return;
-    }
-
-
-    // ========================================
-    // MONTHLY EXPENSES
-    // ========================================
-
-    if (
-      section === "monthlyExpenses"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.monthlyExpenses[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // MONTHLY INCOME
-    // ========================================
-
-    if (
-      section === "monthlyIncome"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.monthlyIncome[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // MONTHLY BALANCE
-    // ========================================
-
-    if (
-      section === "monthlyBalance"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.monthlyBalance[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // BUDGET ACTUAL
-    // ========================================
-
-    if (
-      section === "budgetActual"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.budgetActual[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // BUDGET REMAINING
-    // ========================================
-
-    if (
-      section === "budgetRemaining"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.budgetRemaining[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // BUDGET USAGE
-    // ========================================
-
-    if (
-      section === "budgetUsage"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.budgetUsage[key] =
-          numberValue;
-      }
-
-      return;
-    }
-
-
-    // ========================================
-    // BUDGET OVERSPENDING
-    // ========================================
-
-    if (
-      section === "budgetOverspending"
-    ) {
-
-      const numberValue =
-        Number(value);
-
-      if (Number.isFinite(numberValue)) {
-        analytics.budgetOverspending[key] =
-          numberValue;
       }
 
       return;
@@ -475,48 +339,42 @@ const parseCppOutput = (output) => {
 
       case "TOTAL_INCOME":
 
-        analytics.totalIncome =
-          Number(value);
+        analytics.totalIncome = Number(value);
 
         break;
 
 
       case "TOTAL_EXPENSES":
 
-        analytics.totalExpenses =
-          Number(value);
+        analytics.totalExpenses = Number(value);
 
         break;
 
 
       case "BALANCE":
 
-        analytics.balance =
-          Number(value);
+        analytics.balance = Number(value);
 
         break;
 
 
       case "SAVINGS_RATE":
 
-        analytics.savingsRate =
-          Number(value);
+        analytics.savingsRate = Number(value);
 
         break;
 
 
       case "AVERAGE_EXPENSE":
 
-        analytics.averageExpense =
-          Number(value);
+        analytics.averageExpense = Number(value);
 
         break;
 
 
       case "TOP_CATEGORY":
 
-        analytics.topCategory =
-          value;
+        analytics.topCategory = value;
 
         break;
 
@@ -524,12 +382,14 @@ const parseCppOutput = (output) => {
       default:
 
         break;
+
     }
 
   });
 
 
   return analytics;
+
 };
 
 
