@@ -15,11 +15,18 @@ const Dashboard = () => {
   const [error, setError] = useState("");
 
   const loadAnalytics = useCallback(async () => {
+    if (loading) return;
+
     try {
       setLoading(true);
       setError("");
 
       const data = await getAnalytics();
+
+      if (!data || !data.analytics) {
+        setAnalytics(null);
+        return;
+      }
 
       setAnalytics(data.analytics);
     } catch (error) {
@@ -27,16 +34,41 @@ const Dashboard = () => {
 
       setError(
         error.response?.data?.message ||
-          "Failed to load dashboard"
+          "Unable to load dashboard. Please try again."
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
-    loadAnalytics();
-  }, [loadAnalytics]);
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getAnalytics();
+
+        if (!data || !data.analytics) {
+          setAnalytics(null);
+          return;
+        }
+
+        setAnalytics(data.analytics);
+      } catch (error) {
+        console.error("Analytics Error:", error);
+
+        setError(
+          error.response?.data?.message ||
+            "Unable to load dashboard. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
 
   const formatCurrency = useCallback((amount) => {
     return `₹${Number(amount || 0).toLocaleString("en-IN", {
@@ -44,42 +76,55 @@ const Dashboard = () => {
     })}`;
   }, []);
 
-  if (loading) {
+  if (loading && !analytics) {
     return (
-      <div className="dashboard-page">
+      <main
+        className="dashboard-page"
+        aria-busy="true"
+        aria-live="polite"
+      >
         <Loading message="Loading dashboard..." />
-      </div>
+      </main>
     );
   }
 
-  if (error) {
+  if (error && !analytics) {
     return (
-      <div className="dashboard-page">
+      <main className="dashboard-page" aria-live="polite">
         <ErrorState
           title="Unable to load dashboard"
           message={error}
           actionText="Try Again"
-          onAction={loadAnalytics}
+          onAction={() => {
+            setLoading(false);
+            loadAnalytics();
+          }}
         />
-      </div>
+      </main>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="dashboard-page">
+      <main className="dashboard-page" aria-live="polite">
         <EmptyState
           title="No dashboard data"
           message="We couldn't find any financial data to display."
           actionText="Refresh Dashboard"
-          onAction={loadAnalytics}
+          onAction={() => {
+            setLoading(false);
+            loadAnalytics();
+          }}
         />
-      </div>
+      </main>
     );
   }
 
   return (
-    <main className="dashboard-page">
+    <main
+      className="dashboard-page"
+      aria-busy={loading}
+    >
       <div className="dashboard-header">
         <div>
           <h1>Dashboard</h1>
@@ -92,12 +137,36 @@ const Dashboard = () => {
         <button
           type="button"
           className="refresh-button"
-          onClick={loadAnalytics}
+          onClick={() => {
+            setLoading(false);
+            loadAnalytics();
+          }}
+          disabled={loading}
           aria-label="Refresh dashboard analytics"
+          aria-busy={loading}
         >
-          ↻ Refresh
+          {loading ? "↻ Refreshing..." : "↻ Refresh"}
         </button>
       </div>
+
+      {error && (
+        <div
+          className="dashboard-inline-error"
+          role="alert"
+        >
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(false);
+              loadAnalytics();
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
       <div className="dashboard-cards">
         <DashboardCard
@@ -136,7 +205,6 @@ const Dashboard = () => {
           <div className="panel-header">
             <div>
               <h2>Category Spending</h2>
-
               <p>Where your money is going</p>
             </div>
           </div>
@@ -152,58 +220,48 @@ const Dashboard = () => {
             ) : (
               Object.entries(
                 analytics.categorySpending
-              ).map(([category, amount]) => (
-                <div
-                  className="category-row"
-                  key={category}
-                >
-                  <div className="category-info">
-                    <span>{category}</span>
+              ).map(([category, amount]) => {
+                const percentage =
+                  Number(analytics.totalExpenses) > 0
+                    ? Math.min(
+                        (Number(amount) /
+                          Number(analytics.totalExpenses)) *
+                          100,
+                        100
+                      )
+                    : 0;
 
-                    <strong>
-                      {formatCurrency(amount)}
-                    </strong>
-                  </div>
-
+                return (
                   <div
-                    className="category-bar"
-                    role="progressbar"
-                    aria-label={`${category} spending`}
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-valuenow={
-                      analytics.totalExpenses > 0
-                        ? Math.min(
-                            (Number(amount) /
-                              Number(
-                                analytics.totalExpenses
-                              )) *
-                              100,
-                            100
-                          )
-                        : 0
-                    }
+                    className="category-row"
+                    key={category}
                   >
+                    <div className="category-info">
+                      <span>{category}</span>
+
+                      <strong>
+                        {formatCurrency(amount)}
+                      </strong>
+                    </div>
+
                     <div
-                      className="category-bar-fill"
-                      style={{
-                        width: `${
-                          analytics.totalExpenses > 0
-                            ? Math.min(
-                                (Number(amount) /
-                                  Number(
-                                    analytics.totalExpenses
-                                  )) *
-                                  100,
-                                100
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
+                      className="category-bar"
+                      role="progressbar"
+                      aria-label={`${category} spending`}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow={percentage}
+                    >
+                      <div
+                        className="category-bar-fill"
+                        style={{
+                          width: `${percentage}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
