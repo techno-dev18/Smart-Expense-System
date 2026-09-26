@@ -4,7 +4,7 @@ import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import ExpenseCard from "../components/ExpenseCard";
-
+import ConfirmModal from "../components/ConfirmModal";
 
 import {
   addExpense,
