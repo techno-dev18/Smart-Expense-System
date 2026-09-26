@@ -1,0 +1,503 @@
+/* ================================
+   Accessibility
+================================ */
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 10000;
+
+  padding: 12px 18px;
+
+  background: #111;
+  color: #fff;
+
+  text-decoration: none;
+  font-weight: 700;
+
+  border-radius: 6px;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+
+/* ================================
+   Legal pages
+================================ */
+
+.legal-page {
+  min-height: 70vh;
+  padding: 48px 20px;
+  background: #f7f8fa;
+}
+
+.legal-container {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  padding: 40px;
+
+  background: #fff;
+
+  border: 1px solid #dfe3e8;
+  border-radius: 12px;
+
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.legal-label {
+  margin-bottom: 8px;
+
+  color: #555;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.legal-container h1 {
+  margin: 0 0 8px;
+
+  color: #111;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.15;
+}
+
+.legal-date {
+  margin-bottom: 36px;
+
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.legal-container section {
+  margin-top: 34px;
+}
+
+.legal-container h2 {
+  margin-bottom: 12px;
+
+  color: #1a1a1a;
+  font-size: 1.35rem;
+}
+
+.legal-container p,
+.legal-container li {
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.legal-container ul {
+  padding-left: 24px;
+}
+
+.legal-container li {
+  margin-bottom: 8px;
+}
+
+.legal-intro {
+  margin-bottom: 30px;
+}
+
+
+/* ================================
+   Disclaimer
+================================ */
+
+.legal-disclaimer,
+.security-notice {
+  margin-top: 30px;
+  padding: 24px;
+
+  background: #f4f7fb;
+
+  border-left: 4px solid #155eef;
+  border-radius: 8px;
+}
+
+.legal-disclaimer h2,
+.security-notice h2 {
+  margin-top: 0;
+}
+
+
+/* ================================
+   Pricing
+================================ */
+
+.legal-section {
+  padding: 24px;
+}
+
+
+/* ================================
+   Cookie banner
+================================ */
+
+.cookie-banner {
+  position: fixed;
+
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+
+  z-index: 9999;
+
+  max-width: 1000px;
+  margin: 0 auto;
+
+  background: #fff;
+
+  border: 1px solid #cfd4dc;
+  border-radius: 12px;
+
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+}
+
+.cookie-banner-content {
+  padding: 24px;
+}
+
+.cookie-banner h2 {
+  margin-top: 0;
+  color: #111;
+}
+
+.cookie-banner p {
+  color: #333;
+  line-height: 1.6;
+}
+
+.cookie-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+.cookie-actions button,
+.offline-card button {
+  min-height: 44px;
+
+  padding: 10px 18px;
+
+  background: #111;
+  color: #fff;
+
+  border: 1px solid #111;
+  border-radius: 7px;
+
+  cursor: pointer;
+
+  font-weight: 700;
+}
+
+.cookie-actions .secondary-button {
+  background: #fff;
+  color: #111;
+}
+
+.cookie-actions button:hover {
+  opacity: 0.9;
+}
+
+.cookie-preferences {
+  display: grid;
+  gap: 12px;
+
+  margin-top: 20px;
+}
+
+.consent-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  padding: 14px;
+
+  border: 1px solid #d7dbe0;
+  border-radius: 8px;
+}
+
+.consent-option input {
+  width: 18px;
+  height: 18px;
+
+  margin-top: 3px;
+}
+
+.consent-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consent-option small {
+  color: #555;
+  line-height: 1.5;
+}
+
+
+/* ================================
+   FAQ
+================================ */
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  overflow: hidden;
+
+  border: 1px solid #d8dce2;
+  border-radius: 8px;
+
+  background: #fff;
+}
+
+.faq-question {
+  margin: 0;
+}
+
+.faq-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 54px;
+
+  padding: 15px 18px;
+
+  background: #fff;
+  color: #111;
+
+  border: 0;
+
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.faq-button:hover {
+  background: #f4f5f7;
+}
+
+.faq-answer {
+  padding: 0 18px 18px;
+}
+
+.faq-answer p {
+  margin: 0;
+}
+
+
+/* ================================
+   Contact
+================================ */
+
+.contact-details {
+  display: grid;
+  gap: 18px;
+}
+
+.contact-details div {
+  padding: 16px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.contact-details dt {
+  margin-bottom: 5px;
+
+  color: #555;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.contact-details dd {
+  margin: 0;
+
+  color: #111;
+}
+
+
+/* ================================
+   Footer
+================================ */
+
+.compliance-footer {
+  padding: 45px 20px;
+
+  background: #111;
+  color: #fff;
+}
+
+.footer-container {
+  width: min(100%, 1200px);
+  margin: 0 auto;
+}
+
+.footer-brand h2 {
+  margin-top: 0;
+}
+
+.footer-brand p,
+.footer-disclosure p {
+  color: #d7d7d7;
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+
+  margin: 25px 0;
+}
+
+.footer-links a {
+  color: #fff;
+
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-links a:hover {
+  opacity: 0.8;
+}
+
+.footer-disclosure {
+  padding-top: 20px;
+
+  border-top: 1px solid #444;
+}
+
+
+/* ================================
+   Offline page
+================================ */
+
+.offline-page {
+  min-height: 100vh;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+
+  background: #f5f6f8;
+}
+
+.offline-card {
+  width: min(100%, 500px);
+
+  padding: 40px;
+
+  background: #fff;
+
+  border: 1px solid #ddd;
+  border-radius: 12px;
+
+  text-align: center;
+
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.offline-icon {
+  width: 55px;
+  height: 55px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0 auto 20px;
+
+  background: #111;
+  color: #fff;
+
+  border-radius: 50%;
+
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.offline-card h1 {
+  margin-bottom: 12px;
+}
+
+.offline-card p {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+
+/* ================================
+   Mobile
+================================ */
+
+@media (max-width: 700px) {
+  .legal-page {
+    padding: 20px 12px;
+  }
+
+  .legal-container {
+    padding: 24px 18px;
+  }
+
+  .cookie-banner {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .cookie-banner-content {
+    padding: 18px;
+  }
+
+  .cookie-actions {
+    flex-direction: column;
+  }
+
+  .cookie-actions button {
+    width: 100%;
+  }
+
+  .offline-card {
+    padding: 28px 20px;
+  }
+}
+
+
+/* ================================
+   Reduced motion
+================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

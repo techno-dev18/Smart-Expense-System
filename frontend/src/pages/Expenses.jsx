@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import ExpenseCard from "../components/ExpenseCard";
+
 
 import {
   addExpense,
@@ -27,76 +28,113 @@ const createInitialForm = () => ({
 });
 
 const Expenses = () => {
-  const [formData, setFormData] =
-    useState(createInitialForm);
+  const [formData, setFormData] = useState(
+    createInitialForm()
+  );
 
-  const [expenses, setExpenses] =
-    useState([]);
+  const [expenses, setExpenses] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [submitting, setSubmitting] =
-    useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const [success, setSuccess] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [editingId, setEditingId] =
-    useState(null);
+  const [success, setSuccess] = useState("");
 
-  const loadExpenses = async () => {
+  const [editingId, setEditingId] = useState(null);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  /*
+   * Load expenses
+   *
+   * `showLoading` allows us to distinguish between:
+   * - the first page load
+   * - a manual refresh after the page is already loaded
+   */
+  const loadExpenses = useCallback(async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
+
       setError("");
 
       const data = await getExpenses();
 
-      setExpenses(
-        data.expenses || []
-      );
+      setExpenses(data?.expenses || []);
     } catch (error) {
-      console.error(
-        "Expenses Error:",
-        error
-      );
+      console.error("Expenses Error:", error);
 
       setError(
         error.response?.data?.message ||
           "Failed to load expenses."
       );
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
+  /*
+   * Initial data load
+   *
+   * Loading already starts as true, so we don't need
+   * to synchronously call setLoading(true) here.
+   */
   useEffect(() => {
-    loadExpenses();
+    let cancelled = false;
+
+    const fetchInitialExpenses = async () => {
+      try {
+        setError("");
+
+        const data = await getExpenses();
+
+        if (!cancelled) {
+          setExpenses(data?.expenses || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Expenses Error:", error);
+
+          setError(
+            error.response?.data?.message ||
+              "Failed to load expenses."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInitialExpenses();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleChange = (e) => {
-    const {
-      name,
-      value,
-    } = e.target;
+    const { name, value } = e.target;
 
-    setFormData(
-      (previous) => ({
-        ...previous,
-        [name]: value,
-      })
-    );
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
 
     setError("");
     setSuccess("");
   };
 
   const validateForm = () => {
-    const amount =
-      Number(formData.amount);
+    const amount = Number(formData.amount);
 
     if (!formData.category) {
       return "Please select an expense category.";
@@ -121,9 +159,7 @@ const Expenses = () => {
       return "Amount is too large.";
     }
 
-    if (
-      formData.description.length > 200
-    ) {
+    if (formData.description.length > 200) {
       return "Description cannot exceed 200 characters.";
     }
 
@@ -133,9 +169,7 @@ const Expenses = () => {
 
     if (
       Number.isNaN(
-        new Date(
-          formData.date
-        ).getTime()
+        new Date(formData.date).getTime()
       )
     ) {
       return "Please enter a valid date.";
@@ -150,8 +184,7 @@ const Expenses = () => {
     setError("");
     setSuccess("");
 
-    const validationError =
-      validateForm();
+    const validationError = validateForm();
 
     if (validationError) {
       setError(validationError);
@@ -162,27 +195,15 @@ const Expenses = () => {
       setSubmitting(true);
 
       const data = {
-        category:
-          formData.category,
-
-        amount:
-          Number(formData.amount),
-
-        description:
-          formData.description.trim(),
-
-        date:
-          formData.date,
-
-        paymentMethod:
-          formData.paymentMethod,
+        category: formData.category,
+        amount: Number(formData.amount),
+        description: formData.description.trim(),
+        date: formData.date,
+        paymentMethod: formData.paymentMethod,
       };
 
       if (editingId) {
-        await updateExpense(
-          editingId,
-          data
-        );
+        await updateExpense(editingId, data);
 
         setSuccess(
           "Expense updated successfully."
@@ -195,13 +216,11 @@ const Expenses = () => {
         );
       }
 
-      setFormData(
-        createInitialForm()
-      );
+      setFormData(createInitialForm());
 
       setEditingId(null);
 
-      await loadExpenses();
+      await loadExpenses(false);
     } catch (error) {
       console.error(
         "Save Expense Error:",
@@ -218,30 +237,25 @@ const Expenses = () => {
   };
 
   const handleEdit = (expense) => {
-    setEditingId(
-      expense._id
-    );
+    setEditingId(expense._id);
 
     setFormData({
-      category:
-        expense.category || "",
+      category: expense.category || "",
 
       amount:
-        expense.amount || "",
+        expense.amount !== undefined &&
+        expense.amount !== null
+          ? expense.amount
+          : "",
 
-      description:
-        expense.description || "",
+      description: expense.description || "",
 
       date: expense.date
-        ? expense.date.substring(
-            0,
-            10
-          )
+        ? expense.date.substring(0, 10)
         : getToday(),
 
       paymentMethod:
-        expense.paymentMethod ||
-        "Cash",
+        expense.paymentMethod || "Cash",
     });
 
     setError("");
@@ -256,37 +270,56 @@ const Expenses = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
 
-    setFormData(
-      createInitialForm()
-    );
+    setFormData(createInitialForm());
 
     setError("");
     setSuccess("");
   };
 
-  const handleDelete = async (
-    id
-  ) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this expense?"
-      );
+  /*
+   * Open delete confirmation modal
+   */
+  const requestDelete = (expense) => {
+    setDeleteTarget(expense);
 
-    if (!confirmed) {
+    setError("");
+    setSuccess("");
+  };
+
+  /*
+   * Cancel delete confirmation
+   */
+  const cancelDelete = () => {
+    if (deleting) {
+      return;
+    }
+
+    setDeleteTarget(null);
+  };
+
+  /*
+   * Confirm deletion
+   */
+  const handleDelete = async () => {
+    if (!deleteTarget?._id) {
       return;
     }
 
     try {
+      setDeleting(true);
+
       setError("");
       setSuccess("");
 
-      await deleteExpense(id);
+      await deleteExpense(deleteTarget._id);
+
+      setDeleteTarget(null);
 
       setSuccess(
         "Expense deleted successfully."
       );
 
-      await loadExpenses();
+      await loadExpenses(false);
     } catch (error) {
       console.error(
         "Delete Expense Error:",
@@ -297,30 +330,27 @@ const Expenses = () => {
         error.response?.data?.message ||
           "Failed to delete expense."
       );
+    } finally {
+      setDeleting(false);
     }
   };
 
   if (loading) {
     return (
       <div className="expenses-page">
-        <Loading
-          message="Loading expenses..."
-        />
+        <Loading message="Loading expenses..." />
       </div>
     );
   }
 
-  if (
-    error &&
-    expenses.length === 0
-  ) {
+  if (error && expenses.length === 0) {
     return (
       <div className="expenses-page">
         <ErrorState
           title="Unable to load expenses"
           message={error}
           actionText="Try Again"
-          onAction={loadExpenses}
+          onAction={() => loadExpenses(true)}
         />
       </div>
     );
@@ -329,33 +359,40 @@ const Expenses = () => {
   return (
     <div className="expenses-page">
 
+      {/* Page Header */}
       <div className="page-header">
-
         <div>
-          <h1>
-            Expenses
-          </h1>
+          <h1>Expenses</h1>
 
           <p>
-            Track and manage your
-            daily expenses.
+            Track and manage your daily expenses.
           </p>
         </div>
-
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="error-message">
+        <div
+          className="error-message"
+          role="alert"
+          aria-live="assertive"
+        >
           {error}
         </div>
       )}
 
+      {/* Success Message */}
       {success && (
-        <div className="success-message">
+        <div
+          className="success-message"
+          role="status"
+          aria-live="polite"
+        >
           {success}
         </div>
       )}
 
+      {/* Expense Form */}
       <div className="expense-form-container">
 
         <h2>
@@ -369,6 +406,7 @@ const Expenses = () => {
           noValidate
         >
 
+          {/* Category */}
           <div>
             <label htmlFor="category">
               Category
@@ -377,13 +415,14 @@ const Expenses = () => {
             <select
               id="category"
               name="category"
-              value={
-                formData.category
-              }
-              onChange={
-                handleChange
-              }
+              value={formData.category}
+              onChange={handleChange}
               required
+              aria-required="true"
+              aria-invalid={
+                Boolean(error) &&
+                !formData.category
+              }
             >
               <option value="">
                 Select Category
@@ -427,6 +466,7 @@ const Expenses = () => {
             </select>
           </div>
 
+          {/* Amount */}
           <div>
             <label htmlFor="amount">
               Amount
@@ -440,16 +480,14 @@ const Expenses = () => {
               min="0.01"
               max="100000000"
               step="0.01"
-              value={
-                formData.amount
-              }
-              onChange={
-                handleChange
-              }
+              value={formData.amount}
+              onChange={handleChange}
               required
+              aria-required="true"
             />
           </div>
 
+          {/* Description */}
           <div>
             <label htmlFor="description">
               Description
@@ -461,17 +499,13 @@ const Expenses = () => {
               name="description"
               placeholder="e.g. Lunch with friends"
               maxLength="200"
-              value={
-                formData.description
-              }
-              onChange={
-                handleChange
-              }
+              value={formData.description}
+              onChange={handleChange}
             />
           </div>
 
+          {/* Date */}
           <div className="form-group">
-
             <label htmlFor="date">
               Date
             </label>
@@ -480,17 +514,14 @@ const Expenses = () => {
               id="date"
               type="date"
               name="date"
-              value={
-                formData.date
-              }
-              onChange={
-                handleChange
-              }
+              value={formData.date}
+              onChange={handleChange}
               required
+              aria-required="true"
             />
-
           </div>
 
+          {/* Payment Method */}
           <div>
             <label htmlFor="paymentMethod">
               Payment Method
@@ -499,12 +530,8 @@ const Expenses = () => {
             <select
               id="paymentMethod"
               name="paymentMethod"
-              value={
-                formData.paymentMethod
-              }
-              onChange={
-                handleChange
-              }
+              value={formData.paymentMethod}
+              onChange={handleChange}
             >
               <option value="Cash">
                 Cash
@@ -532,11 +559,13 @@ const Expenses = () => {
             </select>
           </div>
 
+          {/* Form Actions */}
           <div className="form-actions">
 
             <button
               type="submit"
               disabled={submitting}
+              aria-busy={submitting}
             >
               {submitting
                 ? "Saving..."
@@ -548,9 +577,7 @@ const Expenses = () => {
             {editingId && (
               <button
                 type="button"
-                onClick={
-                  handleCancelEdit
-                }
+                onClick={handleCancelEdit}
                 disabled={submitting}
               >
                 Cancel
@@ -560,17 +587,14 @@ const Expenses = () => {
           </div>
 
         </form>
-
       </div>
 
+      {/* Expense List */}
       <div className="expense-list">
 
-        <h2>
-          Your Expenses
-        </h2>
+        <h2>Your Expenses</h2>
 
         {expenses.length === 0 ? (
-
           <EmptyState
             title="No expenses yet"
             message="You haven't added any expenses. Start tracking your spending to understand where your money goes."
@@ -582,35 +606,45 @@ const Expenses = () => {
               });
             }}
           />
-
         ) : (
-
           <div className="expense-items">
 
-            {expenses.map(
-              (expense) => (
-                <ExpenseCard
-                  key={
-                    expense._id
-                  }
-                  expense={
-                    expense
-                  }
-                  onEdit={
-                    handleEdit
-                  }
-                  onDelete={
-                    handleDelete
-                  }
-                />
-              )
-            )}
+            {expenses.map((expense) => (
+              <ExpenseCard
+                key={expense._id}
+                expense={expense}
+                onEdit={handleEdit}
+                onDelete={() =>
+                  requestDelete(expense)
+                }
+              />
+            ))}
 
           </div>
-
         )}
 
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title="Delete expense?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete this ${deleteTarget.category || "expense"} expense? This action cannot be undone.`
+            : ""
+        }
+        confirmText={
+          deleting
+            ? "Deleting..."
+            : "Delete Expense"
+        }
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        onCancel={cancelDelete}
+        loading={deleting}
+        danger
+      />
 
     </div>
   );
