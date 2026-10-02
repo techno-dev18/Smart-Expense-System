@@ -20,7 +20,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import FAQPage from "./pages/FAQ";
-
+import Transactions from "./pages/Transactions";
+import SettingsMenu from "./components/SettingsMenu";
 // Legal Pages
 import TermsAndConditions from "./legal/TermsAndConditions";
 import PrivacyPolicy from "./legal/PrivacyPolicy";
@@ -55,7 +56,7 @@ function App() {
         <Navbar />
 
         {/* Main Application Content */}
-        <main id="main-content">
+        <div id="main-content">
           <Routes>
 
             {/* ==================================================
@@ -123,7 +124,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+<Route
+  path="/transactions"
+  element={
+    <ProtectedRoute>
+      <Transactions />
+    </ProtectedRoute>
+  }
+/>
             <Route
               path="/analytics"
               element={
@@ -184,11 +192,11 @@ function App() {
             />
 
           </Routes>
-        </main>
+        </div>
 
         {/* Global Footer */}
         <Footer />
-
+<SettingsMenu />
         {/* ==================================================
             COMPLIANCE COMPONENTS
         ================================================== */}

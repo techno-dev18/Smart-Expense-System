@@ -26,7 +26,6 @@ const Navbar = () => {
 
   return (
     <header className="navbar">
-
       <div className="navbar-container">
 
         {/* Logo */}
@@ -44,9 +43,7 @@ const Navbar = () => {
         <button
           type="button"
           className="mobile-menu-button"
-          onClick={() =>
-            setMenuOpen(!menuOpen)
-          }
+          onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle navigation"
           aria-expanded={menuOpen}
         >
@@ -57,12 +54,9 @@ const Navbar = () => {
 
         <nav
           className={`navbar-links ${
-            menuOpen
-              ? "navbar-links-open"
-              : ""
+            menuOpen ? "navbar-links-open" : ""
           }`}
         >
-
           {!user ? (
             <>
               <Link
@@ -118,24 +112,33 @@ const Navbar = () => {
               </Link>
 
               <Link
+                to="/transactions"
+                onClick={closeMenu}
+              >
+                Transactions
+              </Link>
+
+              <Link
                 to="/analytics"
                 onClick={closeMenu}
               >
                 Analytics
               </Link>
-<Link
-  to="/about"
-  onClick={closeMenu}
->
-  About
-</Link>
 
-<Link
-  to="/contact"
-  onClick={closeMenu}
->
-  Contact
-</Link>
+              <Link
+                to="/about"
+                onClick={closeMenu}
+              >
+                About
+              </Link>
+
+              <Link
+                to="/contact"
+                onClick={closeMenu}
+              >
+                Contact
+              </Link>
+
               <Link
                 to="/profile"
                 onClick={closeMenu}
@@ -152,11 +155,8 @@ const Navbar = () => {
               </button>
             </>
           )}
-
         </nav>
-
       </div>
-
     </header>
   );
 };

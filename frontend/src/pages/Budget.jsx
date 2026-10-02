@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import BudgetCard from "../components/BudgetCard";
+import ConfirmModal from "../components/ConfirmModal";
 
 import {
   getBudgets,
@@ -17,18 +22,20 @@ import { getAnalytics } from "../services/analyticsApi";
 import "../styles/budget.css";
 import "../styles/forms.css";
 
-const Budget = () => {
+const getInitialForm = () => {
   const currentDate = new Date();
 
-  const initialForm = {
+  return {
     category: "",
     amount: "",
     month: currentDate.getMonth() + 1,
     year: currentDate.getFullYear(),
   };
+};
 
+const Budget = () => {
   const [formData, setFormData] =
-    useState(initialForm);
+    useState(getInitialForm);
 
   const [budgets, setBudgets] =
     useState([]);
@@ -42,6 +49,9 @@ const Budget = () => {
   const [submitting, setSubmitting] =
     useState(false);
 
+  const [deleting, setDeleting] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
@@ -51,43 +61,112 @@ const Budget = () => {
   const [editingId, setEditingId] =
     useState(null);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
 
-      const [
-        budgetData,
-        analyticsData,
-      ] = await Promise.all([
-        getBudgets(),
-        getAnalytics(),
-      ]);
+  /*
+   * Loads budgets and analytics together.
+   *
+   * showLoading is false after add/update/delete
+   * so the whole page does not disappear while
+   * the data is refreshed.
+   */
+  const loadData = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
 
-      setBudgets(
-        budgetData.budgets || []
-      );
+        setError("");
 
-      setAnalytics(
-        analyticsData.analytics || {}
-      );
-    } catch (error) {
-      console.error(
-        "Budget Error:",
-        error
-      );
+        const [
+          budgetData,
+          analyticsData,
+        ] = await Promise.all([
+          getBudgets(),
+          getAnalytics(),
+        ]);
 
-      setError(
-        error.response?.data?.message ||
-          "Failed to load budget information."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        setBudgets(
+          budgetData.budgets || []
+        );
 
+        setAnalytics(
+          analyticsData.analytics || {}
+        );
+      } catch (error) {
+        console.error(
+          "Budget Error:",
+          error
+        );
+
+        setError(
+          error.response?.data?.message ||
+            "Failed to load budget information."
+        );
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
+
+  /*
+   * Initial page load.
+   *
+   * We handle the initial request separately so
+   * the effect does not immediately trigger a
+   * synchronous loading-state update.
+   */
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+
+    const loadInitialData = async () => {
+      try {
+        const [
+          budgetData,
+          analyticsData,
+        ] = await Promise.all([
+          getBudgets(),
+          getAnalytics(),
+        ]);
+
+        if (!cancelled) {
+          setBudgets(
+            budgetData.budgets || []
+          );
+
+          setAnalytics(
+            analyticsData.analytics || {}
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Budget Error:",
+          error
+        );
+
+        if (!cancelled) {
+          setError(
+            error.response?.data?.message ||
+              "Failed to load budget information."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -207,17 +286,17 @@ const Budget = () => {
         );
       }
 
-      setFormData({
-        ...initialForm,
-        month:
-          currentDate.getMonth() + 1,
-        year:
-          currentDate.getFullYear(),
-      });
+      setFormData(
+        getInitialForm()
+      );
 
       setEditingId(null);
 
-      await loadData();
+      /*
+       * Refresh without showing the full-page
+       * loading screen.
+       */
+      await loadData(false);
     } catch (error) {
       console.error(
         "Save Budget Error:",
@@ -242,14 +321,18 @@ const Budget = () => {
       category:
         budget.category || "",
 
+      /*
+       * Use ?? instead of || so a numeric
+       * zero is not incorrectly treated as empty.
+       */
       amount:
-        budget.amount || "",
+        budget.amount ?? "",
 
       month:
-        budget.month || currentDate.getMonth() + 1,
+        budget.month ?? getInitialForm().month,
 
       year:
-        budget.year || currentDate.getFullYear(),
+        budget.year ?? getInitialForm().year,
     });
 
     setError("");
@@ -264,41 +347,50 @@ const Budget = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
 
-    setFormData({
-      ...initialForm,
-      month:
-        currentDate.getMonth() + 1,
-      year:
-        currentDate.getFullYear(),
-    });
+    setFormData(
+      getInitialForm()
+    );
 
     setError("");
     setSuccess("");
   };
 
-  const handleDelete = async (
-    id
-  ) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this budget?"
-      );
+  /*
+   * Opens the custom confirmation modal.
+   */
+  const requestDelete = (budget) => {
+    setDeleteTarget(budget);
 
-    if (!confirmed) {
+    setError("");
+    setSuccess("");
+  };
+
+  /*
+   * Performs the actual delete after
+   * the user confirms.
+   */
+  const handleDelete = async () => {
+    if (!deleteTarget?._id) {
       return;
     }
 
     try {
+      setDeleting(true);
+
       setError("");
       setSuccess("");
 
-      await deleteBudget(id);
+      await deleteBudget(
+        deleteTarget._id
+      );
 
       setSuccess(
         "Budget deleted successfully."
       );
 
-      await loadData();
+      setDeleteTarget(null);
+
+      await loadData(false);
     } catch (error) {
       console.error(
         "Delete Budget Error:",
@@ -309,7 +401,13 @@ const Budget = () => {
         error.response?.data?.message ||
           "Failed to delete budget."
       );
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleRetry = () => {
+    loadData(true);
   };
 
   const getBudgetKey = (
@@ -384,6 +482,9 @@ const Budget = () => {
     projectedOverspending,
     pace
   ) => {
+    const currentDate =
+      new Date();
+
     const currentMonth =
       currentDate.getMonth() + 1;
 
@@ -439,7 +540,7 @@ const Budget = () => {
           title="Unable to load budgets"
           message={error}
           actionText="Try Again"
-          onAction={loadData}
+          onAction={handleRetry}
         />
       </div>
     );
@@ -477,7 +578,6 @@ const Budget = () => {
       <div className="page-header">
 
         <div>
-
           <h1>
             Budget
           </h1>
@@ -486,19 +586,26 @@ const Budget = () => {
             Set spending limits and
             monitor your financial goals.
           </p>
-
         </div>
 
       </div>
 
       {error && (
-        <div className="error-message">
+        <div
+          className="error-message"
+          role="alert"
+          aria-live="assertive"
+        >
           {error}
         </div>
       )}
 
       {success && (
-        <div className="success-message">
+        <div
+          className="success-message"
+          role="status"
+          aria-live="polite"
+        >
           {success}
         </div>
       )}
@@ -514,10 +621,15 @@ const Budget = () => {
         <form
           onSubmit={handleSubmit}
           noValidate
+          aria-label={
+            editingId
+              ? "Edit budget form"
+              : "Create budget form"
+          }
         >
 
+          {/* Category */}
           <div>
-
             <label htmlFor="category">
               Category
             </label>
@@ -532,8 +644,8 @@ const Budget = () => {
                 handleChange
               }
               required
+              aria-required="true"
             >
-
               <option value="">
                 Select Category
               </option>
@@ -573,13 +685,11 @@ const Budget = () => {
               <option value="Other">
                 Other
               </option>
-
             </select>
-
           </div>
 
+          {/* Amount */}
           <div>
-
             <label htmlFor="amount">
               Budget Amount
             </label>
@@ -599,12 +709,13 @@ const Budget = () => {
                 handleChange
               }
               required
+              aria-required="true"
+              inputMode="decimal"
             />
-
           </div>
 
+          {/* Month */}
           <div>
-
             <label htmlFor="month">
               Month
             </label>
@@ -619,8 +730,8 @@ const Budget = () => {
                 handleChange
               }
               required
+              aria-required="true"
             >
-
               <option value="1">
                 January
               </option>
@@ -668,13 +779,11 @@ const Budget = () => {
               <option value="12">
                 December
               </option>
-
             </select>
-
           </div>
 
+          {/* Year */}
           <div>
-
             <label htmlFor="year">
               Year
             </label>
@@ -693,15 +802,19 @@ const Budget = () => {
                 handleChange
               }
               required
+              aria-required="true"
             />
-
           </div>
 
+          {/* Form Actions */}
           <div className="form-actions">
 
             <button
               type="submit"
               disabled={submitting}
+              aria-busy={
+                submitting
+              }
             >
               {submitting
                 ? "Saving..."
@@ -725,9 +838,9 @@ const Budget = () => {
           </div>
 
         </form>
-
       </div>
 
+      {/* Budget List */}
       <div className="budget-list">
 
         <div className="section-heading">
@@ -891,8 +1004,10 @@ const Budget = () => {
                     onEdit={
                       handleEdit
                     }
-                    onDelete={
-                      handleDelete
+                    onDelete={() =>
+                      requestDelete(
+                        budget
+                      )
                     }
                   />
                 );
@@ -904,6 +1019,31 @@ const Budget = () => {
         )}
 
       </div>
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        isOpen={
+          Boolean(deleteTarget)
+        }
+        title="Delete Budget"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete the ${deleteTarget.category || "budget"} budget? This action cannot be undone.`
+            : ""
+        }
+        confirmText="Delete Budget"
+        cancelText="Cancel"
+        onConfirm={
+          handleDelete
+        }
+        onCancel={() => {
+          if (!deleting) {
+            setDeleteTarget(null);
+          }
+        }}
+        loading={deleting}
+        danger
+      />
 
     </div>
   );

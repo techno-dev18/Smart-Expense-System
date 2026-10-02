@@ -68,22 +68,39 @@ const Footer = () => {
           </Link>
         </div>
 
-        {/* Account */}
-        <div className="footer-column">
-          <h3>Account</h3>
+       {/* Account */}
+<div className="footer-column">
+  <h3>Account</h3>
 
-          <Link to="/profile" onClick={handleLinkClick}>
-            Profile
-          </Link>
+  <Link to="/profile" onClick={handleLinkClick}>
+    Profile
+  </Link>
 
-          <Link to="/login" onClick={handleLinkClick}>
-            Login
-          </Link>
+  <Link to="/login" onClick={handleLinkClick}>
+    Login
+  </Link>
 
-          <Link to="/signup" onClick={handleLinkClick}>
-            Create Account
-          </Link>
-        </div>
+  <Link to="/signup" onClick={handleLinkClick}>
+    Create Account
+  </Link>
+
+  <a
+    href="#settings-menu-button"
+    onClick={(event) => {
+      event.preventDefault();
+
+      const settingsButton =
+        document.getElementById("settings-menu-button");
+
+      if (settingsButton) {
+        settingsButton.focus();
+        settingsButton.click();
+      }
+    }}
+  >
+    Settings
+  </a>
+</div>
 
         {/* Company */}
         <div className="footer-column">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -7,139 +7,118 @@ import "../styles/global.css";
 function Profile() {
   const { user } = useAuth();
 
-  const [showPassword, setShowPassword] =
-    useState(false);
-
   if (!user) {
     return null;
   }
 
-  return (
-    <div className="profile-page">
+  const displayName = user.name || "User";
+  const displayEmail = user.email || "Not available";
 
+  return (
+    <main
+      className="profile-page"
+      aria-labelledby="profile-page-title"
+    >
       <div className="profile-container">
 
         {/* Profile Header */}
 
-        <div className="profile-header">
-
-          <div className="profile-avatar">
-            {user.name
-              ? user.name
-                  .charAt(0)
-                  .toUpperCase()
-              : "U"}
+        <header className="profile-header">
+          <div
+            className="profile-avatar"
+            aria-hidden="true"
+          >
+            {displayName.charAt(0).toUpperCase()}
           </div>
 
           <div>
-            <h1>
-              {user.name || "User"}
+            <p className="profile-eyebrow">
+              My account
+            </p>
+
+            <h1 id="profile-page-title">
+              {displayName}
             </h1>
 
             <p>
-              {user.email}
+              {displayEmail}
             </p>
           </div>
-
-        </div>
-
+        </header>
 
         {/* Account Information */}
 
-        <div className="profile-section">
-
+        <section
+          className="profile-section"
+          aria-labelledby="account-information-title"
+        >
           <div className="profile-section-header">
-
             <div>
-              <h2>
+              <h2 id="account-information-title">
                 Account Information
               </h2>
 
               <p>
-                Your SmartExpense account
-                details.
+                Your SmartExpense account details.
               </p>
             </div>
-
           </div>
-
 
           <div className="profile-info-grid">
 
             <div className="profile-info-card">
-
-              <span>
-                Full Name
-              </span>
+              <span>Full Name</span>
 
               <strong>
-                {user.name || "Not available"}
+                {displayName}
               </strong>
-
             </div>
 
-
             <div className="profile-info-card">
-
-              <span>
-                Email Address
-              </span>
+              <span>Email Address</span>
 
               <strong>
-                {user.email || "Not available"}
+                {displayEmail}
               </strong>
-
             </div>
 
-
             <div className="profile-info-card">
-
-              <span>
-                Account Status
-              </span>
+              <span>Account Status</span>
 
               <strong className="profile-status">
                 Active
               </strong>
-
             </div>
 
-
             <div className="profile-info-card">
-
-              <span>
-                Account Type
-              </span>
+              <span>Account Type</span>
 
               <strong>
                 Personal
               </strong>
-
             </div>
 
           </div>
-
-        </div>
-
+        </section>
 
         {/* Security */}
 
-        <div className="profile-section">
-
+        <section
+          className="profile-section"
+          aria-labelledby="profile-security-title"
+        >
           <div className="profile-section-header">
-
             <div>
-              <h2>
+              <h2 id="profile-security-title">
                 Security
               </h2>
 
               <p>
-                Manage your account security.
+                Information about the protection of
+                your account.
               </p>
             </div>
-
           </div>
-
 
           <div className="security-card">
 
@@ -149,88 +128,175 @@ function Profile() {
               </h3>
 
               <p>
-                Your password is securely
-                protected.
+                Your password is protected and is
+                never displayed in your profile.
               </p>
             </div>
 
-
-            <button
-              type="button"
+            <Link
+              to="/security"
               className="profile-button"
-              onClick={() =>
-                setShowPassword(
-                  !showPassword
-                )
-              }
             >
-              {showPassword
-                ? "Hide"
-                : "Protected"}
-            </button>
+              Security & Data
+            </Link>
 
           </div>
+        </section>
 
+        {/* SmartExpense Features */}
 
-          {showPassword && (
-            <div className="security-message">
-              Password information is never
-              displayed for security reasons.
-            </div>
-          )}
-
-        </div>
-
-
-        {/* Account Summary */}
-
-        <div className="profile-section">
-
+        <section
+          className="profile-section"
+          aria-labelledby="profile-features-title"
+        >
           <div className="profile-section-header">
-
             <div>
-              <h2>
+              <h2 id="profile-features-title">
                 SmartExpense
               </h2>
 
               <p>
-                Personal financial management
-                dashboard.
+                Tools available in your personal
+                finance dashboard.
               </p>
             </div>
-
           </div>
-
 
           <div className="profile-features">
 
             <div className="profile-feature">
-              <span>✓</span>
-              Expense Tracking
+              <span aria-hidden="true">✓</span>
+              <span>Expense Tracking</span>
             </div>
 
             <div className="profile-feature">
-              <span>✓</span>
-              Income Management
+              <span aria-hidden="true">✓</span>
+              <span>Income Management</span>
             </div>
 
             <div className="profile-feature">
-              <span>✓</span>
-              Budget Management
+              <span aria-hidden="true">✓</span>
+              <span>Budget Management</span>
             </div>
 
             <div className="profile-feature">
-              <span>✓</span>
-              Financial Analytics
+              <span aria-hidden="true">✓</span>
+              <span>Financial Analytics</span>
+            </div>
+
+            <div className="profile-feature">
+              <span aria-hidden="true">✓</span>
+              <span>Transaction History</span>
             </div>
 
           </div>
+        </section>
 
-        </div>
+        {/* Quick Links */}
+
+        <section
+          className="profile-section"
+          aria-labelledby="profile-links-title"
+        >
+          <div className="profile-section-header">
+            <div>
+              <h2 id="profile-links-title">
+                Quick Links
+              </h2>
+
+              <p>
+                Quickly access important account
+                information.
+              </p>
+            </div>
+          </div>
+
+          <div className="profile-quick-links">
+
+            <Link
+              to="/security"
+              className="profile-quick-link"
+            >
+              <span aria-hidden="true">
+                🔒
+              </span>
+
+              <span>
+                <strong>
+                  Security & Data
+                </strong>
+
+                <small>
+                  Learn how your account data is
+                  protected.
+                </small>
+              </span>
+            </Link>
+
+            <Link
+              to="/privacy-policy"
+              className="profile-quick-link"
+            >
+              <span aria-hidden="true">
+                🛡️
+              </span>
+
+              <span>
+                <strong>
+                  Privacy Policy
+                </strong>
+
+                <small>
+                  Review how personal information is
+                  handled.
+                </small>
+              </span>
+            </Link>
+
+            <Link
+              to="/accessibility"
+              className="profile-quick-link"
+            >
+              <span aria-hidden="true">
+                ♿
+              </span>
+
+              <span>
+                <strong>
+                  Accessibility
+                </strong>
+
+                <small>
+                  View SmartExpense accessibility
+                  information.
+                </small>
+              </span>
+            </Link>
+
+            <Link
+              to="/faq"
+              className="profile-quick-link"
+            >
+              <span aria-hidden="true">
+                ❓
+              </span>
+
+              <span>
+                <strong>
+                  Help & FAQ
+                </strong>
+
+                <small>
+                  Find answers to common questions.
+                </small>
+              </span>
+            </Link>
+
+          </div>
+        </section>
 
       </div>
-
-    </div>
+    </main>
   );
 }
 

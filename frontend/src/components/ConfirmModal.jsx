@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 const ConfirmModal = ({
   isOpen,
-  title = "Confirm action",
+  title = "Confirm Action",
   message = "Are you sure you want to continue?",
   confirmText = "Confirm",
   cancelText = "Cancel",
@@ -12,24 +12,100 @@ const ConfirmModal = ({
   danger = false,
 }) => {
   const cancelButtonRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) {
-      return;
+      return undefined;
     }
 
-    cancelButtonRef.current?.focus();
+    const previousActiveElement =
+      document.activeElement;
+
+    document.body.style.overflow = "hidden";
+
+    const focusTimer = window.setTimeout(() => {
+      if (!loading) {
+        cancelButtonRef.current?.focus();
+      } else {
+        modalRef.current?.focus();
+      }
+    }, 0);
 
     const handleKeyDown = (event) => {
-      if (event.key === "Escape" && !loading) {
-        onCancel();
+      if (event.key === "Escape") {
+        if (!loading) {
+          onCancel();
+        }
+
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const modal = modalRef.current;
+
+      if (!modal) {
+        return;
+      }
+
+      const focusableElements =
+        modal.querySelectorAll(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+
+      const focusable = Array.from(
+        focusableElements
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusable[0];
+      const lastElement =
+        focusable[focusable.length - 1];
+
+      if (
+        event.shiftKey &&
+        document.activeElement === firstElement
+      ) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === lastElement
+      ) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      window.clearTimeout(focusTimer);
+
+      document.body.style.overflow = "";
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+      if (
+        previousActiveElement &&
+        typeof previousActiveElement.focus === "function"
+      ) {
+        previousActiveElement.focus();
+      }
     };
   }, [isOpen, loading, onCancel]);
 
@@ -38,7 +114,10 @@ const ConfirmModal = ({
   }
 
   const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget && !loading) {
+    if (
+      event.target === event.currentTarget &&
+      !loading
+    ) {
       onCancel();
     }
   };
@@ -46,24 +125,38 @@ const ConfirmModal = ({
   return (
     <div
       className="confirm-modal-backdrop"
-      role="presentation"
       onMouseDown={handleBackdropClick}
+      aria-hidden={false}
     >
       <div
+        ref={modalRef}
         className="confirm-modal"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
         aria-describedby="confirm-modal-message"
-        onMouseDown={(event) => event.stopPropagation()}
+        tabIndex="-1"
       >
         <div className="confirm-modal-content">
-          <h2 id="confirm-modal-title">{title}</h2>
 
-          <p id="confirm-modal-message">{message}</p>
+          <div className="confirm-modal-icon" aria-hidden="true">
+            {danger ? "!" : "?"}
+          </div>
+
+          <div className="confirm-modal-text">
+            <h2 id="confirm-modal-title">
+              {title}
+            </h2>
+
+            <p id="confirm-modal-message">
+              {message}
+            </p>
+          </div>
+
         </div>
 
         <div className="confirm-modal-actions">
+
           <button
             ref={cancelButtonRef}
             type="button"
@@ -75,6 +168,7 @@ const ConfirmModal = ({
           </button>
 
           <button
+            ref={confirmButtonRef}
             type="button"
             className={
               danger
@@ -85,8 +179,11 @@ const ConfirmModal = ({
             disabled={loading}
             aria-busy={loading}
           >
-            {loading ? "Please wait..." : confirmText}
+            {loading
+              ? "Processing..."
+              : confirmText}
           </button>
+
         </div>
       </div>
     </div>

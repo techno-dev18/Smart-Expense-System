@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
@@ -27,6 +31,11 @@ const createInitialForm = () => ({
   paymentMethod: "Cash",
 });
 
+const createBulkExpense = () => ({
+  id: `${Date.now()}-${Math.random()}`,
+  ...createInitialForm(),
+});
+
 const Expenses = () => {
   const [formData, setFormData] = useState(
     createInitialForm()
@@ -48,43 +57,47 @@ const Expenses = () => {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // Multiple expense mode
+  const [bulkMode, setBulkMode] = useState(false);
+
+  const [bulkExpenses, setBulkExpenses] = useState([
+    createBulkExpense(),
+    createBulkExpense(),
+  ]);
+
   /*
    * Load expenses
-   *
-   * `showLoading` allows us to distinguish between:
-   * - the first page load
-   * - a manual refresh after the page is already loaded
    */
-  const loadExpenses = useCallback(async (showLoading = false) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
+  const loadExpenses = useCallback(
+    async (showLoading = false) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+
+        setError("");
+
+        const data = await getExpenses();
+
+        setExpenses(data?.expenses || []);
+      } catch (error) {
+        console.error("Expenses Error:", error);
+
+        setError(
+          error.response?.data?.message ||
+            "Failed to load expenses."
+        );
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
       }
-
-      setError("");
-
-      const data = await getExpenses();
-
-      setExpenses(data?.expenses || []);
-    } catch (error) {
-      console.error("Expenses Error:", error);
-
-      setError(
-        error.response?.data?.message ||
-          "Failed to load expenses."
-      );
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  }, []);
+    },
+    []
+  );
 
   /*
    * Initial data load
-   *
-   * Loading already starts as true, so we don't need
-   * to synchronously call setLoading(true) here.
    */
   useEffect(() => {
     let cancelled = false;
@@ -121,6 +134,9 @@ const Expenses = () => {
     };
   }, []);
 
+  /*
+   * Single-entry form
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -178,6 +194,9 @@ const Expenses = () => {
     return "";
   };
 
+  /*
+   * Add / update single expense
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -236,7 +255,12 @@ const Expenses = () => {
     }
   };
 
+  /*
+   * Start editing
+   */
   const handleEdit = (expense) => {
+    setBulkMode(false);
+
     setEditingId(expense._id);
 
     setFormData({
@@ -267,6 +291,9 @@ const Expenses = () => {
     });
   };
 
+  /*
+   * Cancel editing
+   */
   const handleCancelEdit = () => {
     setEditingId(null);
 
@@ -274,6 +301,237 @@ const Expenses = () => {
 
     setError("");
     setSuccess("");
+  };
+
+  /*
+   * Open multiple-entry mode
+   */
+  const openBulkMode = () => {
+    if (editingId) {
+      setEditingId(null);
+      setFormData(createInitialForm());
+    }
+
+    setBulkMode(true);
+
+    setBulkExpenses([
+      createBulkExpense(),
+      createBulkExpense(),
+    ]);
+
+    setError("");
+    setSuccess("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  /*
+   * Close multiple-entry mode
+   */
+  const closeBulkMode = () => {
+    if (submitting) {
+      return;
+    }
+
+    setBulkMode(false);
+
+    setBulkExpenses([
+      createBulkExpense(),
+      createBulkExpense(),
+    ]);
+
+    setError("");
+    setSuccess("");
+  };
+
+  /*
+   * Change one bulk row
+   */
+  const handleBulkChange = (
+    rowId,
+    field,
+    value
+  ) => {
+    setBulkExpenses((previous) =>
+      previous.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              [field]: value,
+            }
+          : row
+      )
+    );
+
+    setError("");
+    setSuccess("");
+  };
+
+  /*
+   * Add another bulk row
+   */
+  const addBulkRow = () => {
+    if (bulkExpenses.length >= 20) {
+      setError(
+        "You can add a maximum of 20 expenses at once."
+      );
+      return;
+    }
+
+    setBulkExpenses((previous) => [
+      ...previous,
+      createBulkExpense(),
+    ]);
+
+    setError("");
+  };
+
+  /*
+   * Remove one bulk row
+   */
+  const removeBulkRow = (rowId) => {
+    if (bulkExpenses.length === 1) {
+      setError(
+        "At least one expense row is required."
+      );
+      return;
+    }
+
+    setBulkExpenses((previous) =>
+      previous.filter(
+        (row) => row.id !== rowId
+      )
+    );
+
+    setError("");
+    setSuccess("");
+  };
+
+  /*
+   * Validate one bulk row
+   */
+  const validateBulkRow = (row, index) => {
+    const amount = Number(row.amount);
+
+    if (!row.category) {
+      return `Expense ${index + 1}: Please select a category.`;
+    }
+
+    if (
+      row.amount === "" ||
+      row.amount === null
+    ) {
+      return `Expense ${index + 1}: Amount is required.`;
+    }
+
+    if (!Number.isFinite(amount)) {
+      return `Expense ${index + 1}: Please enter a valid amount.`;
+    }
+
+    if (amount <= 0) {
+      return `Expense ${index + 1}: Amount must be greater than 0.`;
+    }
+
+    if (amount > 100000000) {
+      return `Expense ${index + 1}: Amount is too large.`;
+    }
+
+    if (row.description.length > 200) {
+      return `Expense ${index + 1}: Description cannot exceed 200 characters.`;
+    }
+
+    if (!row.date) {
+      return `Expense ${index + 1}: Date is required.`;
+    }
+
+    if (
+      Number.isNaN(
+        new Date(row.date).getTime()
+      )
+    ) {
+      return `Expense ${index + 1}: Please enter a valid date.`;
+    }
+
+    return "";
+  };
+
+  /*
+   * Save all bulk expenses
+   */
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    for (
+      let index = 0;
+      index < bulkExpenses.length;
+      index += 1
+    ) {
+      const validationError =
+        validateBulkRow(
+          bulkExpenses[index],
+          index
+        );
+
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+
+    try {
+      setSubmitting(true);
+
+      const expenseRequests =
+        bulkExpenses.map((row) => {
+          return addExpense({
+            category: row.category,
+            amount: Number(row.amount),
+            description:
+              row.description.trim(),
+            date: row.date,
+            paymentMethod:
+              row.paymentMethod,
+          });
+        });
+
+      await Promise.all(expenseRequests);
+
+      const savedCount =
+        bulkExpenses.length;
+
+      setSuccess(
+        `${savedCount} ${
+          savedCount === 1
+            ? "expense"
+            : "expenses"
+        } added successfully.`
+      );
+
+      setBulkExpenses([
+        createBulkExpense(),
+        createBulkExpense(),
+      ]);
+
+      await loadExpenses(false);
+    } catch (error) {
+      console.error(
+        "Bulk Expense Error:",
+        error
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Some expenses could not be saved. Please check your entries and try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /*
@@ -311,7 +569,9 @@ const Expenses = () => {
       setError("");
       setSuccess("");
 
-      await deleteExpense(deleteTarget._id);
+      await deleteExpense(
+        deleteTarget._id
+      );
 
       setDeleteTarget(null);
 
@@ -343,18 +603,67 @@ const Expenses = () => {
     );
   }
 
-  if (error && expenses.length === 0) {
+  if (
+    error &&
+    expenses.length === 0
+  ) {
     return (
       <div className="expenses-page">
         <ErrorState
           title="Unable to load expenses"
           message={error}
           actionText="Try Again"
-          onAction={() => loadExpenses(true)}
+          onAction={() =>
+            loadExpenses(true)
+          }
         />
       </div>
     );
   }
+
+  const renderCategoryOptions = () => (
+    <>
+      <option value="">
+        Select Category
+      </option>
+
+      <option value="Food">
+        Food
+      </option>
+
+      <option value="Transport">
+        Transport
+      </option>
+
+      <option value="Shopping">
+        Shopping
+      </option>
+
+      <option value="Bills">
+        Bills
+      </option>
+
+      <option value="Entertainment">
+        Entertainment
+      </option>
+
+      <option value="Health">
+        Health
+      </option>
+
+      <option value="Education">
+        Education
+      </option>
+
+      <option value="Travel">
+        Travel
+      </option>
+
+      <option value="Other">
+        Other
+      </option>
+    </>
+  );
 
   return (
     <div className="expenses-page">
@@ -392,202 +701,524 @@ const Expenses = () => {
         </div>
       )}
 
-      {/* Expense Form */}
-      <div className="expense-form-container">
-
-        <h2>
-          {editingId
-            ? "Edit Expense"
-            : "Add Expense"}
-        </h2>
-
-        <form
-          onSubmit={handleSubmit}
-          noValidate
+      {/* Mode Buttons */}
+      {!editingId && (
+        <div
+          className="expense-entry-mode"
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+          }}
         >
+          <button
+            type="button"
+            onClick={() => {
+              setBulkMode(false);
+              setError("");
+              setSuccess("");
+            }}
+            disabled={submitting}
+            aria-pressed={!bulkMode}
+          >
+            Add One Expense
+          </button>
 
-          {/* Category */}
-          <div>
-            <label htmlFor="category">
-              Category
-            </label>
+          <button
+            type="button"
+            onClick={openBulkMode}
+            disabled={submitting}
+            aria-pressed={bulkMode}
+          >
+            Add Multiple
+          </button>
+        </div>
+      )}
 
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              aria-required="true"
-              aria-invalid={
-                Boolean(error) &&
-                !formData.category
-              }
+      {/* ========================= */}
+      {/* SINGLE EXPENSE FORM */}
+      {/* ========================= */}
+
+      {!bulkMode && (
+        <div className="expense-form-container">
+
+          <h2>
+            {editingId
+              ? "Edit Expense"
+              : "Add Expense"}
+          </h2>
+
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            aria-label={
+              editingId
+                ? "Edit expense form"
+                : "Add expense form"
+            }
+          >
+
+            {/* Category */}
+            <div>
+              <label htmlFor="category">
+                Category
+              </label>
+
+              <select
+                id="category"
+                name="category"
+                value={
+                  formData.category
+                }
+                onChange={
+                  handleChange
+                }
+                required
+                aria-required="true"
+              >
+                {renderCategoryOptions()}
+              </select>
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label htmlFor="amount">
+                Amount
+              </label>
+
+              <input
+                id="amount"
+                type="number"
+                name="amount"
+                placeholder="Enter amount"
+                min="0.01"
+                max="100000000"
+                step="0.01"
+                value={
+                  formData.amount
+                }
+                onChange={
+                  handleChange
+                }
+                required
+                aria-required="true"
+                inputMode="decimal"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description">
+                Description
+              </label>
+
+              <input
+                id="description"
+                type="text"
+                name="description"
+                placeholder="e.g. Lunch with friends"
+                maxLength="200"
+                value={
+                  formData.description
+                }
+                onChange={
+                  handleChange
+                }
+              />
+            </div>
+
+            {/* Date */}
+            <div className="form-group">
+              <label htmlFor="date">
+                Date
+              </label>
+
+              <input
+                id="date"
+                type="date"
+                name="date"
+                value={
+                  formData.date
+                }
+                onChange={
+                  handleChange
+                }
+                required
+                aria-required="true"
+              />
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label htmlFor="paymentMethod">
+                Payment Method
+              </label>
+
+              <select
+                id="paymentMethod"
+                name="paymentMethod"
+                value={
+                  formData.paymentMethod
+                }
+                onChange={
+                  handleChange
+                }
+              >
+                <option value="Cash">
+                  Cash
+                </option>
+
+                <option value="UPI">
+                  UPI
+                </option>
+
+                <option value="Credit Card">
+                  Credit Card
+                </option>
+
+                <option value="Debit Card">
+                  Debit Card
+                </option>
+
+                <option value="Bank Transfer">
+                  Bank Transfer
+                </option>
+
+                <option value="Other">
+                  Other
+                </option>
+              </select>
+            </div>
+
+            {/* Form Actions */}
+            <div className="form-actions">
+
+              <button
+                type="submit"
+                disabled={submitting}
+                aria-busy={submitting}
+              >
+                {submitting
+                  ? "Saving..."
+                  : editingId
+                  ? "Update Expense"
+                  : "Add Expense"}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={
+                    handleCancelEdit
+                  }
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+              )}
+
+            </div>
+
+          </form>
+        </div>
+      )}
+
+      {/* ========================= */}
+      {/* MULTIPLE EXPENSE FORM */}
+      {/* ========================= */}
+
+      {bulkMode && !editingId && (
+        <div className="expense-form-container">
+
+          <h2>
+            Add Multiple Expenses
+          </h2>
+
+          <p>
+            Add several expenses together and
+            save them at once.
+          </p>
+
+          <form
+            onSubmit={
+              handleBulkSubmit
+            }
+            noValidate
+            aria-label="Add multiple expenses form"
+          >
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
             >
-              <option value="">
-                Select Category
-              </option>
 
-              <option value="Food">
-                Food
-              </option>
+              {bulkExpenses.map(
+                (row, index) => (
+                  <div
+                    key={row.id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "16px",
+                      background: "#fafafa",
+                    }}
+                  >
 
-              <option value="Transport">
-                Transport
-              </option>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems: "center",
+                        marginBottom: "14px",
+                      }}
+                    >
+                      <strong>
+                        Expense {index + 1}
+                      </strong>
 
-              <option value="Shopping">
-                Shopping
-              </option>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeBulkRow(
+                            row.id
+                          )
+                        }
+                        disabled={
+                          submitting
+                        }
+                        aria-label={`Remove expense ${index + 1}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
 
-              <option value="Bills">
-                Bills
-              </option>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: "12px",
+                      }}
+                    >
 
-              <option value="Entertainment">
-                Entertainment
-              </option>
+                      {/* Category */}
+                      <div>
+                        <label
+                          htmlFor={`bulk-category-${row.id}`}
+                        >
+                          Category
+                        </label>
 
-              <option value="Health">
-                Health
-              </option>
+                        <select
+                          id={`bulk-category-${row.id}`}
+                          value={
+                            row.category
+                          }
+                          onChange={(e) =>
+                            handleBulkChange(
+                              row.id,
+                              "category",
+                              e.target.value
+                            )
+                          }
+                          required
+                        >
+                          {renderCategoryOptions()}
+                        </select>
+                      </div>
 
-              <option value="Education">
-                Education
-              </option>
+                      {/* Amount */}
+                      <div>
+                        <label
+                          htmlFor={`bulk-amount-${row.id}`}
+                        >
+                          Amount
+                        </label>
 
-              <option value="Travel">
-                Travel
-              </option>
+                        <input
+                          id={`bulk-amount-${row.id}`}
+                          type="number"
+                          min="0.01"
+                          max="100000000"
+                          step="0.01"
+                          placeholder="Enter amount"
+                          value={
+                            row.amount
+                          }
+                          onChange={(e) =>
+                            handleBulkChange(
+                              row.id,
+                              "amount",
+                              e.target.value
+                            )
+                          }
+                          required
+                          inputMode="decimal"
+                        />
+                      </div>
 
-              <option value="Other">
-                Other
-              </option>
-            </select>
-          </div>
+                      {/* Description */}
+                      <div>
+                        <label
+                          htmlFor={`bulk-description-${row.id}`}
+                        >
+                          Description
+                        </label>
 
-          {/* Amount */}
-          <div>
-            <label htmlFor="amount">
-              Amount
-            </label>
+                        <input
+                          id={`bulk-description-${row.id}`}
+                          type="text"
+                          maxLength="200"
+                          placeholder="Description"
+                          value={
+                            row.description
+                          }
+                          onChange={(e) =>
+                            handleBulkChange(
+                              row.id,
+                              "description",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
 
-            <input
-              id="amount"
-              type="number"
-              name="amount"
-              placeholder="Enter amount"
-              min="0.01"
-              max="100000000"
-              step="0.01"
-              value={formData.amount}
-              onChange={handleChange}
-              required
-              aria-required="true"
-            />
-          </div>
+                      {/* Date */}
+                      <div>
+                        <label
+                          htmlFor={`bulk-date-${row.id}`}
+                        >
+                          Date
+                        </label>
 
-          {/* Description */}
-          <div>
-            <label htmlFor="description">
-              Description
-            </label>
+                        <input
+                          id={`bulk-date-${row.id}`}
+                          type="date"
+                          value={
+                            row.date
+                          }
+                          onChange={(e) =>
+                            handleBulkChange(
+                              row.id,
+                              "date",
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
 
-            <input
-              id="description"
-              type="text"
-              name="description"
-              placeholder="e.g. Lunch with friends"
-              maxLength="200"
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </div>
+                      {/* Payment */}
+                      <div>
+                        <label
+                          htmlFor={`bulk-payment-${row.id}`}
+                        >
+                          Payment Method
+                        </label>
 
-          {/* Date */}
-          <div className="form-group">
-            <label htmlFor="date">
-              Date
-            </label>
+                        <select
+                          id={`bulk-payment-${row.id}`}
+                          value={
+                            row.paymentMethod
+                          }
+                          onChange={(e) =>
+                            handleBulkChange(
+                              row.id,
+                              "paymentMethod",
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="Cash">
+                            Cash
+                          </option>
 
-            <input
-              id="date"
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              required
-              aria-required="true"
-            />
-          </div>
+                          <option value="UPI">
+                            UPI
+                          </option>
 
-          {/* Payment Method */}
-          <div>
-            <label htmlFor="paymentMethod">
-              Payment Method
-            </label>
+                          <option value="Credit Card">
+                            Credit Card
+                          </option>
 
-            <select
-              id="paymentMethod"
-              name="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={handleChange}
+                          <option value="Debit Card">
+                            Debit Card
+                          </option>
+
+                          <option value="Bank Transfer">
+                            Bank Transfer
+                          </option>
+
+                          <option value="Other">
+                            Other
+                          </option>
+                        </select>
+                      </div>
+
+                    </div>
+
+                  </div>
+                )
+              )}
+
+            </div>
+
+            {/* Bulk Actions */}
+            <div
+              className="form-actions"
+              style={{
+                marginTop: "20px",
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
             >
-              <option value="Cash">
-                Cash
-              </option>
 
-              <option value="UPI">
-                UPI
-              </option>
-
-              <option value="Credit Card">
-                Credit Card
-              </option>
-
-              <option value="Debit Card">
-                Debit Card
-              </option>
-
-              <option value="Bank Transfer">
-                Bank Transfer
-              </option>
-
-              <option value="Other">
-                Other
-              </option>
-            </select>
-          </div>
-
-          {/* Form Actions */}
-          <div className="form-actions">
-
-            <button
-              type="submit"
-              disabled={submitting}
-              aria-busy={submitting}
-            >
-              {submitting
-                ? "Saving..."
-                : editingId
-                ? "Update Expense"
-                : "Add Expense"}
-            </button>
-
-            {editingId && (
               <button
                 type="button"
-                onClick={handleCancelEdit}
+                onClick={addBulkRow}
+                disabled={
+                  submitting ||
+                  bulkExpenses.length >= 20
+                }
+              >
+                + Add Row
+              </button>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                aria-busy={submitting}
+              >
+                {submitting
+                  ? "Saving All..."
+                  : `Save All ${bulkExpenses.length} ${
+                      bulkExpenses.length === 1
+                        ? "Expense"
+                        : "Expenses"
+                    }`}
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  closeBulkMode
+                }
                 disabled={submitting}
               >
                 Cancel
               </button>
-            )}
 
-          </div>
+            </div>
 
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
 
       {/* Expense List */}
       <div className="expense-list">
@@ -600,6 +1231,8 @@ const Expenses = () => {
             message="You haven't added any expenses. Start tracking your spending to understand where your money goes."
             actionText="Add Your First Expense"
             onAction={() => {
+              setBulkMode(false);
+
               window.scrollTo({
                 top: 0,
                 behavior: "smooth",
@@ -609,16 +1242,18 @@ const Expenses = () => {
         ) : (
           <div className="expense-items">
 
-            {expenses.map((expense) => (
-              <ExpenseCard
-                key={expense._id}
-                expense={expense}
-                onEdit={handleEdit}
-                onDelete={() =>
-                  requestDelete(expense)
-                }
-              />
-            ))}
+            {expenses.map(
+              (expense) => (
+                <ExpenseCard
+                  key={expense._id}
+                  expense={expense}
+                  onEdit={handleEdit}
+                  onDelete={() =>
+                    requestDelete(expense)
+                  }
+                />
+              )
+            )}
 
           </div>
         )}
@@ -627,7 +1262,9 @@ const Expenses = () => {
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
-        isOpen={Boolean(deleteTarget)}
+        isOpen={
+          Boolean(deleteTarget)
+        }
         title="Delete expense?"
         message={
           deleteTarget
