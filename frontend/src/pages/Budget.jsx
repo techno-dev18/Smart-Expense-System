@@ -1,20 +1,17 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
-import ErrorState from "../components/ErrorState";
-import BudgetCard from "../components/BudgetCard";
 import ConfirmModal from "../components/ConfirmModal";
 
 import {
   getBudgets,
-  addBudget,
-  updateBudget,
-  deleteBudget,
+  addMonthlyBudget,
+  updateMonthlyBudget,
+  deleteMonthlyBudget,
+  addCategoryBudget,
+  updateCategoryBudget,
+  deleteCategoryBudget,
 } from "../services/budgetApi";
 
 import { getAnalytics } from "../services/analyticsApi";
@@ -22,137 +19,166 @@ import { getAnalytics } from "../services/analyticsApi";
 import "../styles/budget.css";
 import "../styles/forms.css";
 
-const getInitialForm = () => {
-  const currentDate = new Date();
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-  return {
-    category: "",
-    amount: "",
-    month: currentDate.getMonth() + 1,
-    year: currentDate.getFullYear(),
-  };
-};
+const CATEGORIES = [
+  "Food",
+  "Groceries",
+  "Shopping",
+  "Transport",
+  "Housing",
+  "Bills",
+  "Healthcare",
+  "Education",
+  "Entertainment",
+  "Travel",
+  "Personal Care",
+  "Other",
+];
+
+const currentDate = new Date();
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
+const getMonthKey = (year, month) =>
+  `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
+
+const getInitialMonthlyForm = () => ({
+  totalAmount: "",
+  month: currentDate.getMonth() + 1,
+  year: currentDate.getFullYear(),
+});
+
+const getInitialCategoryForm = () => ({
+  category: "",
+  amount: "",
+});
+
+const getErrorMessage = (error, fallback) =>
+  error?.response?.data?.message ||
+  error?.message ||
+  fallback;
 
 const Budget = () => {
-  const [formData, setFormData] =
-    useState(getInitialForm);
+  const [monthlyBudgets, setMonthlyBudgets] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [analytics, setAnalytics] = useState({});
 
-  const [budgets, setBudgets] =
-    useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const [analytics, setAnalytics] =
-    useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [selectedMonthKey, setSelectedMonthKey] = useState(
+    getMonthKey(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1
+    )
+  );
 
-  const [submitting, setSubmitting] =
-    useState(false);
+  const [monthlyForm, setMonthlyForm] = useState(
+    getInitialMonthlyForm
+  );
 
-  const [deleting, setDeleting] =
-    useState(false);
+  const [categoryForm, setCategoryForm] = useState(
+    getInitialCategoryForm
+  );
 
-  const [error, setError] =
-    useState("");
+  const [editingMonthlyId, setEditingMonthlyId] = useState(null);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
-  const [success, setSuccess] =
-    useState("");
+  const [showMonthlyForm, setShowMonthlyForm] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
 
-  const [editingId, setEditingId] =
-    useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [deleteTarget, setDeleteTarget] =
-    useState(null);
+  // =====================================================
+  // LOAD DATA
+  // =====================================================
 
-  /*
-   * Loads budgets and analytics together.
-   *
-   * showLoading is false after add/update/delete
-   * so the whole page does not disappear while
-   * the data is refreshed.
-   */
-  const loadData = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) {
-          setLoading(true);
-        }
+  const loadData = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
 
-        setError("");
+    setError("");
 
-        const [
-          budgetData,
-          analyticsData,
-        ] = await Promise.all([
+    try {
+      const [budgetResponse, analyticsResponse] =
+        await Promise.all([
           getBudgets(),
           getAnalytics(),
         ]);
 
-        setBudgets(
-          budgetData.budgets || []
-        );
+      setMonthlyBudgets(
+        budgetResponse.monthlyBudgets || []
+      );
 
-        setAnalytics(
-          analyticsData.analytics || {}
-        );
-      } catch (error) {
-        console.error(
-          "Budget Error:",
-          error
-        );
+      setBudgets(budgetResponse.budgets || []);
 
-        setError(
-          error.response?.data?.message ||
-            "Failed to load budget information."
-        );
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
+      setAnalytics(
+        analyticsResponse.analytics || analyticsResponse || {}
+      );
+    } catch (err) {
+      setError(
+        getErrorMessage(err, "Unable to load budget data.")
+      );
+    } finally {
+      if (showLoading) {
+        setLoading(false);
       }
-    },
-    []
-  );
+    }
+  }, []);
 
-  /*
-   * Initial page load.
-   *
-   * We handle the initial request separately so
-   * the effect does not immediately trigger a
-   * synchronous loading-state update.
-   */
   useEffect(() => {
     let cancelled = false;
 
-    const loadInitialData = async () => {
+    const fetchData = async () => {
       try {
-        const [
-          budgetData,
-          analyticsData,
-        ] = await Promise.all([
-          getBudgets(),
-          getAnalytics(),
-        ]);
+        const [budgetResponse, analyticsResponse] =
+          await Promise.all([
+            getBudgets(),
+            getAnalytics(),
+          ]);
 
-        if (!cancelled) {
-          setBudgets(
-            budgetData.budgets || []
-          );
+        if (cancelled) return;
 
-          setAnalytics(
-            analyticsData.analytics || {}
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Budget Error:",
-          error
+        setMonthlyBudgets(
+          budgetResponse.monthlyBudgets || []
         );
 
+        setBudgets(budgetResponse.budgets || []);
+
+        setAnalytics(
+          analyticsResponse.analytics || analyticsResponse || {}
+        );
+      } catch (err) {
         if (!cancelled) {
           setError(
-            error.response?.data?.message ||
-              "Failed to load budget information."
+            getErrorMessage(
+              err,
+              "Unable to load budget data."
+            )
           );
         }
       } finally {
@@ -162,69 +188,155 @@ const Budget = () => {
       }
     };
 
-    loadInitialData();
+    fetchData();
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const handleChange = (e) => {
-    const {
-      name,
-      value,
-    } = e.target;
+  // =====================================================
+  // SELECTED MONTH
+  // =====================================================
 
-    setFormData(
-      (previous) => ({
-        ...previous,
-        [name]: value,
-      })
-    );
+  const selectedMonthlyBudget = useMemo(
+    () =>
+      monthlyBudgets.find(
+        (item) =>
+          getMonthKey(item.year, item.month) ===
+          selectedMonthKey
+      ) || null,
+    [monthlyBudgets, selectedMonthKey]
+  );
+
+  const selectedCategoryBudgets = useMemo(
+    () =>
+      budgets.filter((item) => {
+        const parent = item.monthlyBudget;
+
+        if (!parent) return false;
+
+        const parentId =
+          typeof parent === "object" ? parent._id : parent;
+
+        return (
+          String(parentId) ===
+          String(selectedMonthlyBudget?._id)
+        );
+      }),
+    [budgets, selectedMonthlyBudget]
+  );
+
+  const totalBudget = Number(
+    selectedMonthlyBudget?.totalAmount || 0
+  );
+
+  const allocatedAmount = selectedCategoryBudgets.reduce(
+    (sum, item) => sum + Number(item.amount || 0),
+    0
+  );
+
+  const unallocatedAmount = Math.max(
+    0,
+    totalBudget - allocatedAmount
+  );
+
+  const monthKey = selectedMonthlyBudget
+    ? getMonthKey(
+        selectedMonthlyBudget.year,
+        selectedMonthlyBudget.month
+      )
+    : selectedMonthKey;
+
+  const actualSpending = Number(
+    analytics.monthlyBudgetActual?.[monthKey] ??
+      analytics.monthlyExpenses?.[monthKey] ??
+      0
+  );
+
+  const spendingRemaining = totalBudget - actualSpending;
+
+  const budgetUsage =
+    totalBudget > 0
+      ? (actualSpending / totalBudget) * 100
+      : 0;
+
+  const categoryNames = selectedCategoryBudgets.map(
+    (item) => item.category
+  );
+
+ 
+
+  // =====================================================
+  // MONTHLY FORM
+  // =====================================================
+
+  const handleMonthlyChange = (event) => {
+    const { name, value } = event.target;
+
+    setMonthlyForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const openMonthlyForm = () => {
+    setError("");
+    setSuccess("");
+
+    if (selectedMonthlyBudget) {
+      setEditingMonthlyId(selectedMonthlyBudget._id);
+
+      setMonthlyForm({
+        totalAmount: String(
+          selectedMonthlyBudget.totalAmount
+        ),
+        month: selectedMonthlyBudget.month,
+        year: selectedMonthlyBudget.year,
+      });
+    } else {
+      setEditingMonthlyId(null);
+
+      const [year, month] = selectedMonthKey
+        .split("-")
+        .map(Number);
+
+      setMonthlyForm({
+        totalAmount: "",
+        month,
+        year,
+      });
+    }
+
+    setShowMonthlyForm(true);
+    setShowCategoryForm(false);
+    setEditingCategoryId(null);
+  };
+
+  const cancelMonthlyForm = () => {
+    setShowMonthlyForm(false);
+    setEditingMonthlyId(null);
+    setMonthlyForm(getInitialMonthlyForm());
+  };
+
+  const handleMonthlySubmit = async (event) => {
+    event.preventDefault();
 
     setError("");
     setSuccess("");
-  };
 
-  const validateForm = () => {
-    const amount =
-      Number(formData.amount);
+    const amount = Number(monthlyForm.totalAmount);
+    const month = Number(monthlyForm.month);
+    const year = Number(monthlyForm.year);
 
-    const month =
-      Number(formData.month);
-
-    const year =
-      Number(formData.year);
-
-    if (!formData.category) {
-      return "Please select a budget category.";
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a monthly budget greater than zero.");
+      return;
     }
 
-    if (
-      formData.amount === "" ||
-      formData.amount === null
-    ) {
-      return "Budget amount is required.";
-    }
-
-    if (!Number.isFinite(amount)) {
-      return "Please enter a valid budget amount.";
-    }
-
-    if (amount <= 0) {
-      return "Budget amount must be greater than 0.";
-    }
-
-    if (amount > 100000000) {
-      return "Budget amount is too large.";
-    }
-
-    if (
-      !Number.isInteger(month) ||
-      month < 1 ||
-      month > 12
-    ) {
-      return "Please select a valid month.";
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      setError("Select a valid month.");
+      return;
     }
 
     if (
@@ -232,820 +344,916 @@ const Budget = () => {
       year < 2000 ||
       year > 2100
     ) {
-      return "Please enter a valid year.";
-    }
-
-    return "";
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    setError("");
-    setSuccess("");
-
-    const validationError =
-      validateForm();
-
-    if (validationError) {
-      setError(validationError);
+      setError("Enter a year between 2000 and 2100.");
       return;
     }
 
+    if (editingMonthlyId && amount < allocatedAmount) {
+      setError(
+        `The monthly budget cannot be below the allocated amount of ${formatCurrency(
+          allocatedAmount
+        )}.`
+      );
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      setSubmitting(true);
+      if (editingMonthlyId) {
+        await updateMonthlyBudget(editingMonthlyId, {
+          totalAmount: amount,
+        });
 
-      const data = {
-        category:
-          formData.category,
-
-        amount:
-          Number(formData.amount),
-
-        month:
-          Number(formData.month),
-
-        year:
-          Number(formData.year),
-      };
-
-      if (editingId) {
-        await updateBudget(
-          editingId,
-          data
-        );
-
-        setSuccess(
-          "Budget updated successfully."
-        );
+        setSuccess("Monthly budget updated successfully.");
       } else {
-        await addBudget(data);
+        await addMonthlyBudget({
+          totalAmount: amount,
+          month,
+          year,
+        });
 
-        setSuccess(
-          "Budget added successfully."
-        );
+        setSelectedMonthKey(getMonthKey(year, month));
+        setSuccess("Monthly budget created successfully.");
       }
 
-      setFormData(
-        getInitialForm()
-      );
-
-      setEditingId(null);
-
-      /*
-       * Refresh without showing the full-page
-       * loading screen.
-       */
+      cancelMonthlyForm();
       await loadData(false);
-    } catch (error) {
-      console.error(
-        "Save Budget Error:",
-        error
-      );
-
+    } catch (err) {
       setError(
-        error.response?.data?.message ||
-          "Something went wrong while saving the budget."
+        getErrorMessage(
+          err,
+          "Unable to save the monthly budget."
+        )
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleEdit = (budget) => {
-    setEditingId(
-      budget._id
-    );
+  // =====================================================
+  // CATEGORY FORM
+  // =====================================================
 
-    setFormData({
-      category:
-        budget.category || "",
-
-      /*
-       * Use ?? instead of || so a numeric
-       * zero is not incorrectly treated as empty.
-       */
-      amount:
-        budget.amount ?? "",
-
-      month:
-        budget.month ?? getInitialForm().month,
-
-      year:
-        budget.year ?? getInitialForm().year,
-    });
-
+  const openCategoryForm = (budget = null) => {
     setError("");
     setSuccess("");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-
-    setFormData(
-      getInitialForm()
-    );
-
-    setError("");
-    setSuccess("");
-  };
-
-  /*
-   * Opens the custom confirmation modal.
-   */
-  const requestDelete = (budget) => {
-    setDeleteTarget(budget);
-
-    setError("");
-    setSuccess("");
-  };
-
-  /*
-   * Performs the actual delete after
-   * the user confirms.
-   */
-  const handleDelete = async () => {
-    if (!deleteTarget?._id) {
+    if (!selectedMonthlyBudget) {
+      setError("Create a monthly budget before adding categories.");
       return;
     }
 
+    if (budget) {
+      setEditingCategoryId(budget._id);
+
+      setCategoryForm({
+        category: budget.category,
+        amount: String(budget.amount),
+      });
+    } else {
+      setEditingCategoryId(null);
+      setCategoryForm(getInitialCategoryForm());
+    }
+
+    setShowCategoryForm(true);
+    setShowMonthlyForm(false);
+    setEditingMonthlyId(null);
+  };
+
+  const cancelCategoryForm = () => {
+    setShowCategoryForm(false);
+    setEditingCategoryId(null);
+    setCategoryForm(getInitialCategoryForm());
+  };
+
+  const handleCategoryChange = (event) => {
+    const { name, value } = event.target;
+
+    setCategoryForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const categoryAvailableAmount = editingCategoryId
+    ? unallocatedAmount +
+      Number(
+        selectedCategoryBudgets.find(
+          (item) => item._id === editingCategoryId
+        )?.amount || 0
+      )
+    : unallocatedAmount;
+
+  const handleCategorySubmit = async (event) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    if (!selectedMonthlyBudget) {
+      setError("Create a monthly budget first.");
+      return;
+    }
+
+    const category = categoryForm.category.trim();
+    const amount = Number(categoryForm.amount);
+
+    if (!category) {
+      setError("Select a category.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a category budget greater than zero.");
+      return;
+    }
+
+    if (amount > categoryAvailableAmount) {
+      setError(
+        `Only ${formatCurrency(
+          categoryAvailableAmount
+        )} is available to allocate.`
+      );
+      return;
+    }
+
+    const duplicate = selectedCategoryBudgets.some(
+      (item) =>
+        item.category.toLowerCase() === category.toLowerCase() &&
+        item._id !== editingCategoryId
+    );
+
+    if (duplicate) {
+      setError("This category already has a budget for this month.");
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      setDeleting(true);
+      if (editingCategoryId) {
+        await updateCategoryBudget(editingCategoryId, {
+          category,
+          amount,
+        });
 
-      setError("");
-      setSuccess("");
+        setSuccess("Category budget updated successfully.");
+      } else {
+        await addCategoryBudget({
+          monthlyBudgetId: selectedMonthlyBudget._id,
+          category,
+          amount,
+        });
 
-      await deleteBudget(
-        deleteTarget._id
+        setSuccess("Category budget added successfully.");
+      }
+
+      cancelCategoryForm();
+      await loadData(false);
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Unable to save the category budget."
+        )
       );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-      setSuccess(
-        "Budget deleted successfully."
-      );
+  // =====================================================
+  // DELETE ACTIONS
+  // =====================================================
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      if (deleteTarget.type === "monthly") {
+        await deleteMonthlyBudget(deleteTarget.item._id);
+        setSuccess("Monthly budget deleted successfully.");
+      } else {
+        await deleteCategoryBudget(deleteTarget.item._id);
+        setSuccess("Category budget deleted successfully.");
+      }
 
       setDeleteTarget(null);
-
       await loadData(false);
-    } catch (error) {
-      console.error(
-        "Delete Budget Error:",
-        error
-      );
-
+    } catch (err) {
       setError(
-        error.response?.data?.message ||
-          "Failed to delete budget."
+        getErrorMessage(
+          err,
+          "Unable to delete the budget."
+        )
       );
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleRetry = () => {
-    loadData(true);
-  };
-
-  const getBudgetKey = (
-    category,
-    month,
-    year
-  ) => {
-    return `${category}|${month}|${year}`;
-  };
-
-  const getBudgetStatus = (
-    usage
-  ) => {
-    const value =
-      Number(usage || 0);
-
-    if (value >= 100) {
-      return {
-        label: "Over Budget",
-        className:
-          "budget-status-danger",
-      };
-    }
-
-    if (value >= 80) {
-      return {
-        label: "Near Limit",
-        className:
-          "budget-status-warning",
-      };
-    }
-
-    return {
-      label: "On Track",
-      className:
-        "budget-status-safe",
-    };
-  };
-
-  const getPaceStatus = (
-    pace
-  ) => {
-    const value =
-      Number(pace || 0);
-
-    if (value >= 120) {
-      return {
-        label: "High Pace",
-        className:
-          "pace-danger",
-      };
-    }
-
-    if (value >= 100) {
-      return {
-        label: "Ahead",
-        className:
-          "pace-warning",
-      };
-    }
-
-    return {
-      label: "Healthy",
-      className:
-        "pace-safe",
-    };
-  };
-
-  const getRecommendation = (
-    budget,
-    actual,
-    projectedOverspending,
-    pace
-  ) => {
-    const currentDate =
-      new Date();
-
-    const currentMonth =
-      currentDate.getMonth() + 1;
-
-    const currentYear =
-      currentDate.getFullYear();
-
-    if (
-      budget.month === currentMonth &&
-      budget.year === currentYear
-    ) {
-      if (
-        Number(projectedOverspending) > 0
-      ) {
-        return `Reduce ${budget.category} spending to avoid exceeding your monthly budget.`;
-      }
-
-      if (Number(pace) >= 120) {
-        return `Your ${budget.category} spending is significantly ahead of pace. Consider reducing spending for the rest of the month.`;
-      }
-
-      if (Number(pace) >= 100) {
-        return `Your ${budget.category} spending is slightly ahead of the expected pace. Keep an eye on upcoming expenses.`;
-      }
-    }
-
-    if (
-      Number(actual) <=
-      Number(budget.amount) * 0.5
-    ) {
-      return `Your ${budget.category} spending is currently well controlled.`;
-    }
-
-    return `Continue monitoring your ${budget.category} spending to stay within budget.`;
-  };
+  // =====================================================
+  // LOADING
+  // =====================================================
 
   if (loading) {
-    return (
-      <div className="budget-page">
-        <Loading
-          message="Loading budgets..."
-        />
-      </div>
-    );
+    return <Loading />;
   }
 
-  if (
-    error &&
-    budgets.length === 0
-  ) {
-    return (
-      <div className="budget-page">
-        <ErrorState
-          title="Unable to load budgets"
-          message={error}
-          actionText="Try Again"
-          onAction={handleRetry}
-        />
-      </div>
-    );
-  }
-
-  const budgetActual =
-    analytics?.budgetActual || {};
-
-  const budgetRemaining =
-    analytics?.budgetRemaining || {};
-
-  const budgetUsage =
-    analytics?.budgetUsage || {};
-
-  const budgetOverspending =
-    analytics?.budgetOverspending || {};
-
-  const budgetPace =
-    analytics?.budgetPace || {};
-
-  const budgetProjected =
-    analytics?.budgetProjected || {};
-
-  const budgetProjectedOverspending =
-    analytics?.budgetProjectedOverspending ||
-    {};
-
-  const budgetRecommendations =
-    analytics?.budgetRecommendations ||
-    {};
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
-    <div className="budget-page">
-
-      <div className="page-header">
-
+    <main className="budget-page">
+      <div className="budget-page-header">
         <div>
-          <h1>
-            Budget
-          </h1>
-
+          <p className="budget-eyebrow">SMART MONEY PLANNING</p>
+          <h1>Monthly Budget</h1>
           <p>
-            Set spending limits and
-            monitor your financial goals.
+            Set a monthly limit, divide it between categories,
+            and compare your plan with actual spending.
           </p>
         </div>
 
+        <div className="budget-month-selector">
+          <label htmlFor="budget-month-select">
+            View month
+          </label>
+
+          <select
+            id="budget-month-select"
+            value={selectedMonthKey}
+            onChange={(event) => {
+              setSelectedMonthKey(event.target.value);
+              setError("");
+              setSuccess("");
+              setShowMonthlyForm(false);
+              setShowCategoryForm(false);
+            }}
+          >
+            {Array.from(
+              new Map(
+                [
+                  ...monthlyBudgets.map((item) => ({
+                    year: Number(item.year),
+                    month: Number(item.month),
+                  })),
+                  {
+                    year: currentDate.getFullYear(),
+                    month: currentDate.getMonth() + 1,
+                  },
+                ].map((item) => [
+                  getMonthKey(item.year, item.month),
+                  item,
+                ])
+              ).values()
+            )
+              .sort(
+                (a, b) =>
+                  b.year - a.year || b.month - a.month
+              )
+              .map((item) => {
+                const key = getMonthKey(item.year, item.month);
+
+                return (
+                  <option key={key} value={key}>
+                    {MONTHS[item.month - 1]} {item.year}
+                  </option>
+                );
+              })}
+          </select>
+        </div>
       </div>
 
       {error && (
-        <div
-          className="error-message"
-          role="alert"
-          aria-live="assertive"
-        >
-          {error}
+        <div className="budget-alert budget-alert-error" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
         </div>
       )}
 
       {success && (
         <div
-          className="success-message"
+          className="budget-alert budget-alert-success"
           role="status"
           aria-live="polite"
         >
-          {success}
+          <span>{success}</span>
+          <button
+            type="button"
+            onClick={() => setSuccess("")}
+            aria-label="Dismiss success message"
+          >
+            ×
+          </button>
         </div>
       )}
 
-      <div className="budget-form-container">
+      {/* MONTHLY BUDGET */}
 
-        <h2>
-          {editingId
-            ? "Edit Budget"
-            : "Create Budget"}
-        </h2>
-
-        <form
-          onSubmit={handleSubmit}
-          noValidate
-          aria-label={
-            editingId
-              ? "Edit budget form"
-              : "Create budget form"
-          }
-        >
-
-          {/* Category */}
+      <section className="budget-monthly-panel">
+        <div className="budget-section-heading">
           <div>
-            <label htmlFor="category">
-              Category
-            </label>
-
-            <select
-              id="category"
-              name="category"
-              value={
-                formData.category
-              }
-              onChange={
-                handleChange
-              }
-              required
-              aria-required="true"
-            >
-              <option value="">
-                Select Category
-              </option>
-
-              <option value="Food">
-                Food
-              </option>
-
-              <option value="Transport">
-                Transport
-              </option>
-
-              <option value="Shopping">
-                Shopping
-              </option>
-
-              <option value="Bills">
-                Bills
-              </option>
-
-              <option value="Entertainment">
-                Entertainment
-              </option>
-
-              <option value="Health">
-                Health
-              </option>
-
-              <option value="Education">
-                Education
-              </option>
-
-              <option value="Travel">
-                Travel
-              </option>
-
-              <option value="Other">
-                Other
-              </option>
-            </select>
+            <h2>
+              {MONTHS[Number(selectedMonthKey.split("-")[1]) - 1]}{" "}
+              {selectedMonthKey.split("-")[0]}
+            </h2>
+            <p>Your total spending limit for this month.</p>
           </div>
 
-          {/* Amount */}
-          <div>
-            <label htmlFor="amount">
-              Budget Amount
-            </label>
-
-            <input
-              id="amount"
-              type="number"
-              name="amount"
-              placeholder="Enter budget amount"
-              min="0.01"
-              max="100000000"
-              step="0.01"
-              value={
-                formData.amount
-              }
-              onChange={
-                handleChange
-              }
-              required
-              aria-required="true"
-              inputMode="decimal"
-            />
-          </div>
-
-          {/* Month */}
-          <div>
-            <label htmlFor="month">
-              Month
-            </label>
-
-            <select
-              id="month"
-              name="month"
-              value={
-                formData.month
-              }
-              onChange={
-                handleChange
-              }
-              required
-              aria-required="true"
-            >
-              <option value="1">
-                January
-              </option>
-
-              <option value="2">
-                February
-              </option>
-
-              <option value="3">
-                March
-              </option>
-
-              <option value="4">
-                April
-              </option>
-
-              <option value="5">
-                May
-              </option>
-
-              <option value="6">
-                June
-              </option>
-
-              <option value="7">
-                July
-              </option>
-
-              <option value="8">
-                August
-              </option>
-
-              <option value="9">
-                September
-              </option>
-
-              <option value="10">
-                October
-              </option>
-
-              <option value="11">
-                November
-              </option>
-
-              <option value="12">
-                December
-              </option>
-            </select>
-          </div>
-
-          {/* Year */}
-          <div>
-            <label htmlFor="year">
-              Year
-            </label>
-
-            <input
-              id="year"
-              type="number"
-              name="year"
-              min="2000"
-              max="2100"
-              step="1"
-              value={
-                formData.year
-              }
-              onChange={
-                handleChange
-              }
-              required
-              aria-required="true"
-            />
-          </div>
-
-          {/* Form Actions */}
-          <div className="form-actions">
-
-            <button
-              type="submit"
-              disabled={submitting}
-              aria-busy={
-                submitting
-              }
-            >
-              {submitting
-                ? "Saving..."
-                : editingId
-                ? "Update Budget"
-                : "Create Budget"}
-            </button>
-
-            {editingId && (
+          <div className="budget-heading-actions">
+            {selectedMonthlyBudget && (
               <button
                 type="button"
-                onClick={
-                  handleCancelEdit
+                className="budget-button budget-button-secondary"
+                onClick={openMonthlyForm}
+              >
+                Edit monthly budget
+              </button>
+            )}
+
+            {!selectedMonthlyBudget && (
+              <button
+                type="button"
+                className="budget-button budget-button-primary"
+                onClick={openMonthlyForm}
+              >
+                + Set monthly budget
+              </button>
+            )}
+          </div>
+        </div>
+
+        {selectedMonthlyBudget ? (
+          <>
+            <div className="budget-total-value">
+              {formatCurrency(totalBudget)}
+            </div>
+
+            <div className="budget-summary-grid">
+              <div className="budget-summary-card">
+                <span>Allocated to categories</span>
+                <strong>{formatCurrency(allocatedAmount)}</strong>
+                <small>
+                  {totalBudget > 0
+                    ? `${((allocatedAmount / totalBudget) * 100).toFixed(1)}% of monthly budget`
+                    : "0% allocated"}
+                </small>
+              </div>
+
+              <div className="budget-summary-card">
+                <span>Unallocated funds</span>
+                <strong>{formatCurrency(unallocatedAmount)}</strong>
+                <small>Available for new category budgets</small>
+              </div>
+
+              <div className="budget-summary-card">
+                <span>Actual spending</span>
+                <strong>{formatCurrency(actualSpending)}</strong>
+                <small>Recorded expenses this month</small>
+              </div>
+
+              <div className="budget-summary-card">
+                <span>Monthly limit remaining</span>
+                <strong
+                  className={
+                    spendingRemaining < 0
+                      ? "budget-value-danger"
+                      : ""
+                  }
+                >
+                  {formatCurrency(spendingRemaining)}
+                </strong>
+                <small>
+                  {spendingRemaining < 0
+                    ? "Spending is above the monthly limit"
+                    : "Based on actual expenses"}
+                </small>
+              </div>
+            </div>
+
+            <div className="budget-progress-section">
+              <div className="budget-progress-labels">
+                <span>Monthly spending progress</span>
+                <strong>{budgetUsage.toFixed(1)}%</strong>
+              </div>
+
+              <div
+                className="budget-progress-track"
+                role="progressbar"
+                aria-label="Monthly spending progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(100, Math.max(0, budgetUsage))}
+              >
+                <div
+                  className={`budget-progress-fill ${
+                    budgetUsage > 100 ? "is-over-budget" : ""
+                  }`}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, budgetUsage))}%`,
+                  }}
+                />
+              </div>
+
+              <p>
+                {budgetUsage > 100
+                  ? `You have exceeded the monthly limit by ${formatCurrency(
+                      actualSpending - totalBudget
+                    )}.`
+                  : `${formatCurrency(
+                      Math.max(0, totalBudget - actualSpending)
+                    )} remains before reaching your monthly limit.`}
+              </p>
+            </div>
+
+            <div className="budget-monthly-actions">
+              <button
+                type="button"
+                className="budget-button budget-button-danger-outline"
+                onClick={() =>
+                  setDeleteTarget({
+                    type: "monthly",
+                    item: selectedMonthlyBudget,
+                  })
                 }
+                disabled={selectedCategoryBudgets.length > 0}
+                title={
+                  selectedCategoryBudgets.length > 0
+                    ? "Delete category budgets first"
+                    : "Delete monthly budget"
+                }
+              >
+                Delete monthly budget
+              </button>
+
+              {selectedCategoryBudgets.length > 0 && (
+                <span className="budget-helper-text">
+                  Delete all category budgets before deleting this month.
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="budget-no-monthly">
+            <h3>No monthly budget set</h3>
+            <p>
+              Set a total limit for this month before allocating
+              amounts to Food, Shopping, Transport, and other categories.
+            </p>
+            <button
+              type="button"
+              className="budget-button budget-button-primary"
+              onClick={openMonthlyForm}
+            >
+              Create monthly budget
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* MONTHLY FORM */}
+
+      {showMonthlyForm && (
+        <section className="budget-form-panel">
+          <div className="budget-section-heading">
+            <div>
+              <h2>
+                {editingMonthlyId
+                  ? "Edit monthly budget"
+                  : "Create monthly budget"}
+              </h2>
+              <p>
+                Your category allocations cannot exceed this amount.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="budget-close-button"
+              onClick={cancelMonthlyForm}
+              aria-label="Close monthly budget form"
+            >
+              ×
+            </button>
+          </div>
+
+          <form onSubmit={handleMonthlySubmit}>
+            <div className="budget-form-grid">
+              <div className="form-group">
+                <label htmlFor="monthly-total">
+                  Total monthly budget (₹)
+                </label>
+                <input
+                  id="monthly-total"
+                  name="totalAmount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={monthlyForm.totalAmount}
+                  onChange={handleMonthlyChange}
+                  placeholder="30000"
+                  required
+                />
+              </div>
+
+              {!editingMonthlyId && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="monthly-month">Month</label>
+                    <select
+                      id="monthly-month"
+                      name="month"
+                      value={monthlyForm.month}
+                      onChange={handleMonthlyChange}
+                      required
+                    >
+                      {MONTHS.map((month, index) => (
+                        <option key={month} value={index + 1}>
+                          {month}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="monthly-year">Year</label>
+                    <input
+                      id="monthly-year"
+                      name="year"
+                      type="number"
+                      min="2000"
+                      max="2100"
+                      value={monthlyForm.year}
+                      onChange={handleMonthlyChange}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {editingMonthlyId && (
+              <p className="budget-helper-text">
+                Currently allocated: {formatCurrency(allocatedAmount)}.
+                The new monthly total cannot be lower than this amount.
+              </p>
+            )}
+
+            <div className="budget-form-actions">
+              <button
+                type="button"
+                className="budget-button budget-button-secondary"
+                onClick={cancelMonthlyForm}
                 disabled={submitting}
               >
                 Cancel
               </button>
-            )}
 
+              <button
+                type="submit"
+                className="budget-button budget-button-primary"
+                disabled={submitting}
+              >
+                {submitting
+                  ? "Saving..."
+                  : editingMonthlyId
+                    ? "Save changes"
+                    : "Create monthly budget"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {/* CATEGORY BUDGETS */}
+
+      <section className="budget-category-section">
+        <div className="budget-section-heading">
+          <div>
+            <h2>Category budgets</h2>
+            <p>
+              Divide your monthly budget into spending categories.
+            </p>
           </div>
 
-        </form>
-      </div>
-
-      {/* Budget List */}
-      <div className="budget-list">
-
-        <div className="section-heading">
-
-          <h2>
-            Your Budgets
-          </h2>
-
-          <p>
-            Monitor your spending,
-            projected expenses and
-            budget recommendations.
-          </p>
-
+          <button
+            type="button"
+            className="budget-button budget-button-primary"
+            onClick={() => openCategoryForm()}
+            disabled={!selectedMonthlyBudget || unallocatedAmount <= 0}
+          >
+            + Add category
+          </button>
         </div>
 
-        {budgets.length === 0 ? (
-
-          <EmptyState
-            title="No budgets yet"
-            message="Create your first budget to start controlling your spending."
-            actionText="Create Your First Budget"
-            onAction={() => {
-              window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-              });
-            }}
-          />
-
-        ) : (
-
-          <div className="budget-items">
-
-            {budgets.map(
-              (budget) => {
-                const key =
-                  getBudgetKey(
-                    budget.category,
-                    budget.month,
-                    budget.year
-                  );
-
-                const actual =
-                  Number(
-                    budgetActual[
-                      key
-                    ] || 0
-                  );
-
-                const remaining =
-                  Number(
-                    budgetRemaining[
-                      key
-                    ] ??
-                      Number(
-                        budget.amount
-                      ) -
-                        actual
-                  );
-
-                const usage =
-                  Number(
-                    budgetUsage[
-                      key
-                    ] ||
-                      0
-                  );
-
-                const overspending =
-                  Number(
-                    budgetOverspending[
-                      key
-                    ] ||
-                      0
-                  );
-
-                const pace =
-                  Number(
-                    budgetPace[
-                      key
-                    ] ||
-                      0
-                  );
-
-                const projected =
-                  Number(
-                    budgetProjected[
-                      key
-                    ] ||
-                      actual
-                  );
-
-                const projectedOverspending =
-                  Number(
-                    budgetProjectedOverspending[
-                      key
-                    ] ||
-                      0
-                  );
-
-                const recommendation =
-                  budgetRecommendations[
-                    key
-                  ] ||
-                  getRecommendation(
-                    budget,
-                    actual,
-                    projectedOverspending,
-                    pace
-                  );
-
-                const status =
-                  getBudgetStatus(
-                    usage
-                  );
-
-                const paceStatus =
-                  getPaceStatus(
-                    pace
-                  );
-
-                return (
-                  <BudgetCard
-                    key={
-                      budget._id
-                    }
-                    budget={
-                      budget
-                    }
-                    actual={
-                      actual
-                    }
-                    usage={
-                      usage
-                    }
-                    remaining={
-                      remaining
-                    }
-                    overspending={
-                      overspending
-                    }
-                    pace={
-                      pace
-                    }
-                    projected={
-                      projected
-                    }
-                    projectedOverspending={
-                      projectedOverspending
-                    }
-                    recommendation={
-                      recommendation
-                    }
-                    status={
-                      status
-                    }
-                    paceStatus={
-                      paceStatus
-                    }
-                    onEdit={
-                      handleEdit
-                    }
-                    onDelete={() =>
-                      requestDelete(
-                        budget
-                      )
-                    }
-                  />
-                );
-              }
-            )}
-
+        {selectedMonthlyBudget && (
+          <div className="budget-allocation-banner">
+            <div>
+              <span>Available to allocate</span>
+              <strong>{formatCurrency(unallocatedAmount)}</strong>
+            </div>
+            <p>
+              Category allocations must stay within the monthly total of{" "}
+              {formatCurrency(totalBudget)}.
+            </p>
           </div>
-
         )}
 
-      </div>
+        {/* CATEGORY FORM */}
 
-      {/* Delete Confirmation */}
+        {showCategoryForm && (
+          <div className="budget-form-panel">
+            <div className="budget-section-heading">
+              <div>
+                <h3>
+                  {editingCategoryId
+                    ? "Edit category budget"
+                    : "Add category budget"}
+                </h3>
+                <p>
+                  Available allocation:{" "}
+                  <strong>
+                    {formatCurrency(categoryAvailableAmount)}
+                  </strong>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="budget-close-button"
+                onClick={cancelCategoryForm}
+                aria-label="Close category budget form"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCategorySubmit}>
+              <div className="budget-form-grid">
+                <div className="form-group">
+                  <label htmlFor="category-name">Category</label>
+                  <select
+                    id="category-name"
+                    name="category"
+                    value={categoryForm.category}
+                    onChange={handleCategoryChange}
+                    required
+                  >
+                    <option value="">Select a category</option>
+
+                    {categoryForm.category &&
+                      !CATEGORIES.includes(categoryForm.category) && (
+                        <option value={categoryForm.category}>
+                          {categoryForm.category}
+                        </option>
+                      )}
+
+                    {CATEGORIES.filter(
+                      (category) =>
+                        category === categoryForm.category ||
+                        !categoryNames.some(
+                          (existing) =>
+                            existing.toLowerCase() ===
+                            category.toLowerCase()
+                        )
+                    ).map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="category-amount">
+                    Category budget (₹)
+                  </label>
+                  <input
+                    id="category-amount"
+                    name="amount"
+                    type="number"
+                    min="0.01"
+                    max={categoryAvailableAmount}
+                    step="0.01"
+                    inputMode="decimal"
+                    value={categoryForm.amount}
+                    onChange={handleCategoryChange}
+                    placeholder="5000"
+                    required
+                  />
+                </div>
+              </div>
+
+              <p className="budget-helper-text">
+                This allocation is separate from actual expenses.
+                You can change it later as long as the total remains
+                within the monthly limit.
+              </p>
+
+              <div className="budget-form-actions">
+                <button
+                  type="button"
+                  className="budget-button budget-button-secondary"
+                  onClick={cancelCategoryForm}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="budget-button budget-button-primary"
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? "Saving..."
+                    : editingCategoryId
+                      ? "Save category"
+                      : "Add category"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {!selectedMonthlyBudget ? (
+          <EmptyState
+            title="Set a monthly budget first"
+            message="Once you create a monthly budget, you can allocate amounts to individual categories."
+          />
+        ) : selectedCategoryBudgets.length === 0 ? (
+          <EmptyState
+            title="No category budgets yet"
+            message="Start by allocating part of your monthly budget to Food, Shopping, Transport, or another category."
+          />
+        ) : (
+          <div className="budget-category-grid">
+            {selectedCategoryBudgets.map((budget) => {
+              const categoryAmount = Number(budget.amount) || 0;
+
+              const categoryActual = Number(
+                analytics.budgetActual?.[budget.category] || 0
+              );
+
+              const categoryRemaining =
+                categoryAmount - categoryActual;
+
+              const categoryUsage =
+                categoryAmount > 0
+                  ? (categoryActual / categoryAmount) * 100
+                  : 0;
+
+              return (
+                <article
+                  className="budget-category-card"
+                  key={budget._id}
+                >
+                  <div className="budget-category-card-header">
+                    <div>
+                      <span className="budget-category-label">
+                        CATEGORY
+                      </span>
+                      <h3>{budget.category}</h3>
+                    </div>
+
+                    <div className="budget-card-actions">
+                      <button
+                        type="button"
+                        className="budget-icon-button"
+                        onClick={() => openCategoryForm(budget)}
+                        aria-label={`Edit ${budget.category} budget`}
+                        title="Edit category budget"
+                      >
+                        ✎
+                      </button>
+
+                      <button
+                        type="button"
+                        className="budget-icon-button budget-icon-danger"
+                        onClick={() =>
+                          setDeleteTarget({
+                            type: "category",
+                            item: budget,
+                          })
+                        }
+                        aria-label={`Delete ${budget.category} budget`}
+                        title="Delete category budget"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="budget-category-amount">
+                    {formatCurrency(categoryAmount)}
+                  </div>
+
+                  <div className="budget-category-metrics">
+                    <div>
+                      <span>Spent</span>
+                      <strong>{formatCurrency(categoryActual)}</strong>
+                    </div>
+
+                    <div>
+                      <span>Remaining</span>
+                      <strong
+                        className={
+                          categoryRemaining < 0
+                            ? "budget-value-danger"
+                            : ""
+                        }
+                      >
+                        {formatCurrency(categoryRemaining)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="budget-progress-section">
+                    <div className="budget-progress-labels">
+                      <span>Budget used</span>
+                      <strong>{categoryUsage.toFixed(1)}%</strong>
+                    </div>
+
+                    <div
+                      className="budget-progress-track"
+                      role="progressbar"
+                      aria-label={`${budget.category} budget used`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.min(
+                        100,
+                        Math.max(0, categoryUsage)
+                      )}
+                    >
+                      <div
+                        className={`budget-progress-fill ${
+                          categoryUsage > 100 ? "is-over-budget" : ""
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(0, categoryUsage)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {categoryUsage > 100 && (
+                    <p className="budget-category-warning" role="status">
+                      Over category limit by{" "}
+                      {formatCurrency(
+                        categoryActual - categoryAmount
+                      )}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* CONFIRMATION DIALOG */}
+
       <ConfirmModal
-        isOpen={
-          Boolean(deleteTarget)
+        isOpen={Boolean(deleteTarget)}
+        title={
+          deleteTarget?.type === "monthly"
+            ? "Delete monthly budget?"
+            : "Delete category budget?"
         }
-        title="Delete Budget"
         message={
-          deleteTarget
-            ? `Are you sure you want to delete the ${deleteTarget.category || "budget"} budget? This action cannot be undone.`
-            : ""
+          deleteTarget?.type === "monthly"
+            ? "This will permanently delete the monthly budget. You can only delete it after removing its category budgets."
+            : `Delete the ${
+                deleteTarget?.item?.category || ""
+              } budget? This will return its allocation to the unallocated amount. Your recorded expenses will not be deleted.`
         }
-        confirmText="Delete Budget"
+        confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={
-          handleDelete
-        }
-        onCancel={() => {
-          if (!deleting) {
-            setDeleteTarget(null);
-          }
-        }}
-        loading={deleting}
         danger
+        loading={deleting}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onConfirm={handleDelete}
       />
-
-    </div>
+    </main>
   );
 };
 
