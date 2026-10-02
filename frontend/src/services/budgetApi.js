@@ -1,23 +1,67 @@
 import API from "./api";
 
-// Add budget
-export const addBudget = async (budgetData) => {
+/* ========================================
+   GET ALL BUDGETS
+   ======================================== */
+
+export const getBudgets = async () => {
+  const response = await API.get("/budgets");
+  return response.data;
+};
+
+
+/* ========================================
+   MONTHLY BUDGET
+   ======================================== */
+
+// Add a monthly budget
+export const addMonthlyBudget = async (budgetData) => {
   const response = await API.post(
-    "/budgets",
+    "/budgets/monthly",
     budgetData
   );
 
   return response.data;
 };
 
-// Get budgets
-export const getBudgets = async () => {
-  const response = await API.get("/budgets");
+// Update a monthly budget
+export const updateMonthlyBudget = async (
+  id,
+  budgetData
+) => {
+  const response = await API.put(
+    `/budgets/monthly/${id}`,
+    budgetData
+  );
 
   return response.data;
 };
 
-// Get one budget
+// Delete a monthly budget
+export const deleteMonthlyBudget = async (id) => {
+  const response = await API.delete(
+    `/budgets/monthly/${id}`
+  );
+
+  return response.data;
+};
+
+
+/* ========================================
+   CATEGORY BUDGET
+   ======================================== */
+
+// Add a category sub-budget
+export const addCategoryBudget = async (budgetData) => {
+  const response = await API.post(
+    "/budgets/category",
+    budgetData
+  );
+
+  return response.data;
+};
+
+// Get one category budget
 export const getBudgetById = async (id) => {
   const response = await API.get(
     `/budgets/${id}`
@@ -26,8 +70,8 @@ export const getBudgetById = async (id) => {
   return response.data;
 };
 
-// Update budget
-export const updateBudget = async (
+// Update a category sub-budget
+export const updateCategoryBudget = async (
   id,
   budgetData
 ) => {
@@ -39,11 +83,25 @@ export const updateBudget = async (
   return response.data;
 };
 
-// Delete budget
-export const deleteBudget = async (id) => {
+// Delete a category sub-budget
+export const deleteCategoryBudget = async (id) => {
   const response = await API.delete(
     `/budgets/${id}`
   );
 
   return response.data;
 };
+
+
+/* ========================================
+   BACKWARD-COMPATIBLE ALIASES
+   ======================================== */
+
+// Keep these aliases if other components still
+// import addBudget, updateBudget, or deleteBudget.
+
+export const addBudget = addCategoryBudget;
+
+export const updateBudget = updateCategoryBudget;
+
+export const deleteBudget = deleteCategoryBudget;
