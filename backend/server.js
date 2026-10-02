@@ -11,7 +11,7 @@ const expenseRoutes = require("./routes/expenseRoutes");
 const incomeRoutes = require("./routes/incomeRoutes");
 const budgetRoutes = require("./routes/budgetRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-
+const contactRoutes = require("./routes/contactRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
 
 dotenv.config();
@@ -108,6 +108,7 @@ app.use(
   "/api/analytics",
   analyticsRoutes
 );
+app.use("/api/contact", contactRoutes);
 app.use(
   (req, res) => {
     res.status(404).json({
