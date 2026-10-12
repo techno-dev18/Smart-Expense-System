@@ -52,13 +52,13 @@ function ExpenseCard({
 
         {expense.description && (
           <p>
-            <span>Description</span>
+            <span>Description:</span>
             {expense.description}
           </p>
         )}
 
         <p>
-          <span>Payment Method</span>
+          <span>Payment Method:</span>
           {expense.paymentMethod ||
             "Not specified"}
         </p>
