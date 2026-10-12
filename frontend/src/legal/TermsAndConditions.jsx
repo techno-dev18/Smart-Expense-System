@@ -7,7 +7,7 @@ const TermsAndConditions = () => {
         <h1>Terms and Conditions</h1>
 
         <p className="legal-date">
-          Effective date: [INSERT DATE]
+          Effective date: Oct 2026
         </p>
 
         <section>
@@ -134,7 +134,7 @@ const TermsAndConditions = () => {
           </p>
 
           <p>
-            <strong>[LEGAL CONTACT EMAIL]</strong>
+            <strong>support@smartexpense.com</strong>
           </p>
         </section>
       </div>

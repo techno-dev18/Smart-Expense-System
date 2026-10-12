@@ -7,7 +7,7 @@ const RefundPolicy = () => {
         <h1>Refund and Cancellation Policy</h1>
 
         <p className="legal-date">
-          Effective date: [INSERT DATE]
+          Effective date: Oct 2026
         </p>
 
         <section>
@@ -54,7 +54,7 @@ const RefundPolicy = () => {
           </p>
 
           <p>
-            <strong>[BILLING CONTACT EMAIL]</strong>
+            <strong>billing@smartexpense.com</strong>
           </p>
         </section>
       </div>

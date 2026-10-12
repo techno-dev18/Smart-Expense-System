@@ -9,7 +9,7 @@ const SecurityAndDataPolicy = () => {
         <h1>Security and Data Protection</h1>
 
         <p className="legal-date">
-          Effective date: [INSERT DATE]
+          Effective date: Oct 2026
         </p>
 
         <SecurityNotice />
@@ -59,7 +59,7 @@ const SecurityAndDataPolicy = () => {
           </p>
 
           <p>
-            <strong>[SECURITY CONTACT EMAIL]</strong>
+            <strong>security@smartexpense.com</strong>
           </p>
         </section>
       </div>

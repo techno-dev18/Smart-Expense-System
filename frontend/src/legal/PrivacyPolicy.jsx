@@ -7,7 +7,7 @@ const PrivacyPolicy = () => {
         <h1>Privacy Policy</h1>
 
         <p className="legal-date">
-          Effective date: [INSERT DATE]
+          Effective date: Oct 2026
         </p>
 
         <section>
@@ -138,7 +138,7 @@ const PrivacyPolicy = () => {
           </p>
 
           <p>
-            <strong>[PRIVACY CONTACT EMAIL]</strong>
+            <strong>privacy@smartexpense.com</strong>
           </p>
         </section>
       </div>

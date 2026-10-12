@@ -1,33 +1,34 @@
+
 const express = require("express");
 
 const {
-  addBudget,
+  addMonthlyBudget,
   getBudgets,
+  updateMonthlyBudget,
+  deleteMonthlyBudget,
+  addCategoryBudget,
   getBudgetById,
-  updateBudget,
-  deleteBudget,
+  updateCategoryBudget,
+  deleteCategoryBudget,
 } = require("../controllers/budgetController");
 
 const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// All budget routes require authentication
+// All budget endpoints require authentication.
 router.use(protect);
 
-// Add budget
-router.post("/", addBudget);
-
-// Get all budgets
+// Monthly budgets — register these before /:id.
 router.get("/", getBudgets);
+router.post("/monthly", addMonthlyBudget);
+router.put("/monthly/:id", updateMonthlyBudget);
+router.delete("/monthly/:id", deleteMonthlyBudget);
 
-// Get single budget
+// Category budgets.
+router.post("/category", addCategoryBudget);
 router.get("/:id", getBudgetById);
-
-// Update budget
-router.put("/:id", updateBudget);
-
-// Delete budget
-router.delete("/:id", deleteBudget);
+router.put("/:id", updateCategoryBudget);
+router.delete("/:id", deleteCategoryBudget);
 
 module.exports = router;

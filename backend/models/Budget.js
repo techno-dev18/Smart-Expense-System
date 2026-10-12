@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const budgetSchema = new mongoose.Schema(
@@ -6,6 +7,12 @@ const budgetSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+
+    monthlyBudget: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MonthlyBudget",
+      // Optional temporarily for legacy records.
     },
 
     category: {
@@ -20,16 +27,15 @@ const budgetSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Retained for compatibility with existing records.
     month: {
       type: Number,
-      required: true,
       min: 1,
       max: 12,
     },
 
     year: {
       type: Number,
-      required: true,
     },
   },
   {
@@ -37,7 +43,6 @@ const budgetSchema = new mongoose.Schema(
   }
 );
 
-// One budget per user/category/month/year
 budgetSchema.index(
   {
     user: 1,
@@ -47,6 +52,7 @@ budgetSchema.index(
   },
   {
     unique: true,
+    // Keep your existing index during the migration.
   }
 );
 
